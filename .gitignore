@@ -1,0 +1,6 @@
+cmake-build-debugcpp/
+cmake-build-releasec/
+*.zip
+CMakeLists.txt
+.DS_Store
+.idea/
