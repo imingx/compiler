@@ -4,7 +4,11 @@
 
 #ifndef COMPILER_MAIN_H
 #define COMPILER_MAIN_H
-# include "lexer.h"
+
+# include "Lexer.h"
+# include "Parser.h"
+# include "AST.h"
+
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";
 static const char *FILE_OUT = "output.txt";
