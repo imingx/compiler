@@ -7,7 +7,7 @@
 
 map<int, int> BinopPrecedence;//优先级
 
-void Parser::syncTokIndex(){
+void Parser::syncTokIndex() {
     PreviewIndex = index;
 }
 
@@ -787,7 +787,7 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
         case LBRACE: {
             getNextToken();
             switch (CurTok) {
-                case RBRACE:{
+                case RBRACE: {
                     getNextToken();
                     return make_unique<ConstInitValAST>(move(constInitVals));
                 }
@@ -921,7 +921,8 @@ unique_ptr<ExpAST> Parser::parseExp() {
         case MINU:
         case IDENFR:
         case LPARENT:
-        case INTCON: {
+        case INTCON:
+        case NOT: {
             auto t = parseAddExp();
 #ifdef PRINT
             fprintf(out, "<AddExp>\n");
@@ -975,6 +976,8 @@ unique_ptr<UnaryOpAST> Parser::parseUnaryOp() {
 }
 
 unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
+
+    cout << "curtok is " << tokenName[CurTok] << endl;
 
     switch (CurTok) {
         case PLUS:
@@ -1495,8 +1498,7 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
                                 break;
                             case ASSIGN: //=
                             case LBRACK: //[
-                            case SEMICN:
-                            {
+                            case SEMICN: {
                                 auto decl = parseDecl();
                                 decls.push_back(move(decl));
                             }
