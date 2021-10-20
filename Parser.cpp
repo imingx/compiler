@@ -501,6 +501,8 @@ unique_ptr<StmtAST> Parser::parseStmt() {
         case BREAKTK:
         case CONTINUETK: {
             category = CurTok;
+            getNextToken(); //get ;
+            getNextToken(); //get next
             return make_unique<StmtAST>(category);
         }
             break;
@@ -660,6 +662,7 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
         case IFTK:
         case WHILETK:
         case BREAKTK:
+        case CONTINUETK:
         case RETURNTK:
         case PRINTFTK: {
             auto t = parseStmt();
@@ -709,6 +712,7 @@ unique_ptr<BlockAST> Parser::parseBlock() {
             case IFTK:
             case WHILETK:
             case BREAKTK:
+            case CONTINUETK:
             case RETURNTK:
             case PRINTFTK: {
                 auto t = parseBlockItem();
