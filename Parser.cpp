@@ -3,6 +3,7 @@
 //
 
 #include "include/Parser.h"
+#include "include/main.h"
 
 map<int, int> BinopPrecedence;//优先级
 
@@ -10,8 +11,20 @@ int Parser::getNextToken() {
     if (index < words.size()) {
         identifierStr = words[index].raw;
         PreviewIndex = index + 1;
+#ifdef PRINT
+        if (index > 0) {
+            fprintf(out, "%s %s\n", tokenName[words[index - 1].category], words[index - 1].raw.c_str());
+            cout << tokenName[words[index - 1].category] << " " << words[index - 1].raw << endl;
+        }
+#endif
         return CurTok = words[index++].category;
     } else {
+#ifdef PRINT
+        if (index > 0) {
+            fprintf(out, "%s %s\n", tokenName[words[index - 1].category], words[index - 1].raw.c_str());
+            cout << tokenName[words[index - 1].category] << " " << words[index - 1].raw << endl;
+        }
+#endif
         return CurTok = EOF;
     }
 }
@@ -72,10 +85,10 @@ Parser::~Parser() {
 
 void Parser::handleCompUnit() {
     if (parseCompUnit()) {
-        fprintf(stderr, "Parsed a CompUnit definition.\n");
+#ifdef PRINT
+        fprintf(out, "<CompUnit>\n");
         cout << "<CompUnit>" << endl;
-    } else {
-        cout << "error" << endl;
+#endif
     }
 }
 
@@ -116,6 +129,10 @@ unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
         while (CurTok == LBRACK) {
             getNextToken();
             auto t = parseConstExp();
+#ifdef PRINT
+            fprintf(out, "<ConstExp>\n");
+            cout << "<ConstExp>" << endl;
+#endif
             constExps.push_back(move(t));
             if (CurTok != RBRACK) {
                 fprintf(stderr, "error!\n");
@@ -139,7 +156,10 @@ unique_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
     }
     auto t = parseFuncFParam();
     funcFParams.push_back(move(t));
-
+#ifdef PRINT
+    fprintf(out, "<FuncFParam>\n");
+    cout << "<FuncFParam>" << endl;
+#endif
     while (CurTok == COMMA) {
         getNextToken();
         if (CurTok != INTTK) {
@@ -147,6 +167,10 @@ unique_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
             exit(-1);
         }
         auto t = parseFuncFParam();
+#ifdef PRINT
+        fprintf(out, "<FuncFParam>\n");
+        cout << "<FuncFParam>" << endl;
+#endif
         funcFParams.push_back(move(t));
     }
     return make_unique<FuncFParamsAST>(move(funcFParams));
@@ -164,6 +188,10 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-1);
     }
     funcType = parseFuncType();
+#ifdef PRINT
+    fprintf(out, "<FuncType>\n");
+    cout << "<FuncType>" << endl;
+#endif
     if (CurTok != IDENFR) {
         fprintf(stderr, "parseFuncDef error!\n");
         exit(-2);
@@ -177,6 +205,10 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
     getNextToken();
     if (CurTok != RPARENT) {
         funcFParams = parseFuncFParams();
+#ifdef PRINT
+        fprintf(out, "<FuncFParams>\n");
+        cout << "<FuncFParams>" << endl;
+#endif
     } else {
         getNextToken();
     }
@@ -185,6 +217,10 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-4);
     }
     block = parseBlock();
+#ifdef PRINT
+    fprintf(out, "<Block>\n");
+    cout << "<Block>" << endl;
+#endif
     return make_unique<FuncDefAST>(move(funcType), name, move(funcFParams), move(block));
 }
 
@@ -201,11 +237,18 @@ unique_ptr<EqExpAST> Parser::parseEqExp() {
         case NOT: {
             auto t = parseRelExp();
             relExps.push_back(move(t));
-
+#ifdef PRINT
+            fprintf(out, "<RelExp>\n");
+            cout << "<RelExp>" << endl;
+#endif
             while (CurTok == EQL || CurTok == NEQ) {
                 symbols.push_back(CurTok);
                 getNextToken();
                 auto t = parseRelExp();
+#ifdef PRINT
+                fprintf(out, "<RelExp>\n");
+                cout << "<RelExp>" << endl;
+#endif
                 relExps.push_back(move(t));
             }
             return make_unique<EqExpAST>(symbols, move(relExps));
@@ -230,12 +273,20 @@ unique_ptr<RelExpAST> Parser::parseRelExp() {
         case INTCON:
         case NOT: {
             auto t = parseAddExp();
+#ifdef PRINT
+            fprintf(out, "<AddExp>\n");
+            cout << "<AddExp>" << endl;
+#endif
             addExps.push_back(move(t));
 
             while (CurTok == LSS || CurTok == LEQ || CurTok == GRE || CurTok == GEQ) {
                 symbols.push_back(CurTok);
                 getNextToken();
                 auto t = parseAddExp();
+#ifdef PRINT
+                fprintf(out, "<AddExp>\n");
+                cout << "<AddExp>" << endl;
+#endif
                 addExps.push_back(move(t));
             }
             return make_unique<RelExpAST>(symbols, move(addExps));
@@ -259,10 +310,18 @@ unique_ptr<LAndExpAST> Parser::parseLAndExp() {
         case INTCON:
         case NOT: {
             auto t = parseEqExp();
+#ifdef PRINT
+            fprintf(out, "<EqExp>\n");
+            cout << "<EqExp>" << endl;
+#endif
             eqExps.push_back(move(t));
             while (CurTok == AND) {
                 getNextToken();
                 auto t = parseEqExp();
+#ifdef PRINT
+                fprintf(out, "<EqExp>\n");
+                cout << "<EqExp>" << endl;
+#endif
                 eqExps.push_back(move(t));
             }
             return make_unique<LAndExpAST>(move(eqExps));
@@ -286,10 +345,18 @@ unique_ptr<LOrExpAST> Parser::parseLOrExp() {
         case INTCON:
         case NOT: {
             auto t = parseLAndExp();
+#ifdef PRINT
+            fprintf(out, "<LAndExp>\n");
+            cout << "<LAndExp>" << endl;
+#endif
             lAndExps.push_back(move(t));
             while (CurTok == OR) {
                 getNextToken();
                 auto t = parseLAndExp();
+#ifdef PRINT
+                fprintf(out, "<LAndExp>\n");
+                cout << "<LAndExp>" << endl;
+#endif
                 lAndExps.push_back(move(t));
             }
             return make_unique<LOrExpAST>(move(lAndExps));
@@ -312,6 +379,10 @@ unique_ptr<CondAST> Parser::parseCond() {
         case INTCON:
         case NOT: {
             auto t = parseLOrExp();
+#ifdef PRINT
+            fprintf(out, "<LOrExp>\n");
+            cout << "<LOrExp>" << endl;
+#endif
             return make_unique<CondAST>(move(t));
         }
             break;
@@ -374,6 +445,10 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             while (CurTok == COMMA) {
                 getNextToken();
                 auto t = parseExp();
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 expsPrintf.push_back(move(t));
             }
             if (CurTok == RPARENT) {
@@ -390,6 +465,10 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 return make_unique<StmtAST>(move(expReturn), "RETURN");
             } else {
                 expReturn = parseExp();
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 return make_unique<StmtAST>(move(expReturn), "RETURN");
             }
         }
@@ -404,9 +483,17 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             getNextToken(); // get (
             getNextToken();
             condWhile = parseCond();
+#ifdef PRINT
+            fprintf(out, "<Cond>\n");
+            cout << "<Cond>" << endl;
+#endif
             // now we get )
             getNextToken();
             stmtWhile = parseStmt();
+#ifdef PRINT
+            fprintf(out, "<Stmt>\n");
+            cout << "<Stmt>" << endl;
+#endif
             return make_unique<StmtAST>(move(condWhile), move(stmtWhile));
         }
             break;
@@ -414,17 +501,33 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             getNextToken(); //get (
             getNextToken();
             condIf = parseCond();
+#ifdef PRINT
+            fprintf(out, "<Cond>\n");
+            cout << "<Cond>" << endl;
+#endif
             getNextToken();
             stmtIf = parseStmt();
+#ifdef PRINT
+            fprintf(out, "<Stmt>\n");
+            cout << "<Stmt>" << endl;
+#endif
             if (CurTok == ELSETK) {
                 getNextToken();
                 stmtElse = parseStmt();
+#ifdef PRINT
+                fprintf(out, "<Stmt>\n");
+                cout << "<Stmt>" << endl;
+#endif
             }
             return make_unique<StmtAST>(move(condIf), move(stmtIf), move(stmtElse));
         }
             break;
         case LBRACE: {
             block = parseBlock();
+#ifdef PRINT
+            fprintf(out, "<Block>\n");
+            cout << "<Block>" << endl;
+#endif
             return make_unique<StmtAST>(move(block));
         }
             break;
@@ -438,6 +541,10 @@ unique_ptr<StmtAST> Parser::parseStmt() {
         case LPARENT:
         case INTCON: {
             expSingle = parseExp(); //get ;
+#ifdef PRINT
+            fprintf(out, "<Exp>\n");
+            cout << "<Exp>" << endl;
+#endif
             getNextToken(); //get next
             return make_unique<StmtAST>(move(expSingle));
         }
@@ -446,6 +553,10 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             PreviewNextToken();
             if (PreviewTok == LPARENT) {
                 expSingle = parseExp(); //get ;
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 getNextToken(); //get next;
                 return make_unique<StmtAST>(move(expSingle));
             }
@@ -462,6 +573,10 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 PreviewNextToken();
                 if (PreviewTok == GETINTTK) {
                     lValGetint = parseLVal(); // =
+#ifdef PRINT
+                    fprintf(out, "<LVal>\n");
+                    cout << "<LVal>" << endl;
+#endif
                     getNextToken();   // getint
                     getNextToken();   // (
                     getNextToken(); // )
@@ -470,14 +585,26 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     return make_unique<StmtAST>(move(lValGetint));
                 } else {
                     lVal = parseLVal(); // =
+#ifdef PRINT
+                    fprintf(out, "<LVal>\n");
+                    cout << "<LVal>" << endl;
+#endif
                     getNextToken(); // next
                     exp = parseExp(); //;
+#ifdef PRINT
+                    fprintf(out, "<Exp>\n");
+                    cout << "<Exp>" << endl;
+#endif
                     getNextToken(); //nexxt
                     return make_unique<StmtAST>(move(lVal), move(exp));
                 }
             } else {
                 //没有=
                 expSingle = parseExp(); //get ;
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 getNextToken(); //get next;
                 return make_unique<StmtAST>(move(expSingle));
             }
@@ -511,6 +638,10 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
         case RETURNTK:
         case PRINTFTK: {
             auto t = parseStmt();
+#ifdef PRINT
+            fprintf(out, "<Stmt>\n");
+            cout << "<Stmt>" << endl;
+#endif
             return make_unique<BlockItemAST>(move(t));
         }
             break;
@@ -569,6 +700,7 @@ unique_ptr<BlockAST> Parser::parseBlock() {
             break;
         }
     }
+    getNextToken();
     return make_unique<BlockAST>(move(blockItems));
 }
 
@@ -598,6 +730,10 @@ unique_ptr<MainFuncDefAST> Parser::parseMainDef() {
         exit(-1);
     }
     auto t = parseBlock();
+#ifdef PRINT
+    fprintf(out, "<Block>\n");
+    cout << "<Block>" << endl;
+#endif
     return make_unique<MainFuncDefAST>(move(t));
 }
 
@@ -613,6 +749,10 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
         case LPARENT:
         case INTCON: {
             constExp = parseConstExp();
+#ifdef PRINT
+            fprintf(out, "<ConstExp>\n");
+            cout << "<ConstExp>" << endl;
+#endif
             return make_unique<ConstInitValAST>(move(constExp));
         }
             break;
@@ -628,10 +768,18 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
                 case INTCON:
                 case LBRACE: {
                     auto t = parseConstInitVal();
+#ifdef PRINT
+                    fprintf(out, "<ConstInitVal>\n");
+                    cout << "<ConstInitVal>" << endl;
+#endif
                     constInitVals.push_back(move(t));
                     while (CurTok == COMMA) {
                         getNextToken();
                         auto t = parseConstInitVal();
+#ifdef PRINT
+                        fprintf(out, "<ConstInitVal>\n");
+                        cout << "<ConstInitVal>" << endl;
+#endif
                         constInitVals.push_back(move(t));
                     }
                     if (CurTok != RBRACE) {
@@ -680,6 +828,10 @@ unique_ptr<LValAST> Parser::parseLVal() {
             case LPARENT:
             case INTCON: {
                 auto t = parseExp();
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 exps.push_back(move(t));
                 if (CurTok != RBRACK) {
                     fprintf(stderr, "parseLVal error!\n");
@@ -697,11 +849,19 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
     switch (CurTok) {
         case INTCON: {
             auto t = parseNumber();
+#ifdef PRINT
+            fprintf(out, "<Number>\n");
+            cout << "<Number>" << endl;
+#endif
             return make_unique<PrimaryExpAST>(move(t));
         }
         case LPARENT: {
             getNextToken();
             auto t = parseExp();
+#ifdef PRINT
+            fprintf(out, "<Exp>\n");
+            cout << "<Exp>" << endl;
+#endif
             if (CurTok != RPARENT) {
                 fprintf(stderr, "parsePrimaryExp error!\n");
                 exit(-1);
@@ -712,6 +872,10 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             break;
         case IDENFR: {
             auto t = parseLVal();
+#ifdef PRINT
+            fprintf(out, "<LVal>\n");
+            cout << "<LVal>" << endl;
+#endif
             return make_unique<PrimaryExpAST>(move(t));
         }
             break;
@@ -729,6 +893,10 @@ unique_ptr<ExpAST> Parser::parseExp() {
         case LPARENT:
         case INTCON: {
             auto t = parseAddExp();
+#ifdef PRINT
+            fprintf(out, "<AddExp>\n");
+            cout << "<AddExp>" << endl;
+#endif
             return make_unique<ExpAST>(move(t));
         }
             break;
@@ -748,6 +916,10 @@ unique_ptr<FuncRParamsAST> Parser::parseFuncRParams() {
             case LPARENT:
             case INTCON: {
                 auto t = parseExp();
+#ifdef PRINT
+                fprintf(out, "<Exp>\n");
+                cout << "<Exp>" << endl;
+#endif
                 exps.push_back(move(t));
             }
                 break;
@@ -778,13 +950,25 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
         case MINU:
         case NOT: {
             auto t = parseUnaryOp();
+#ifdef PRINT
+            fprintf(out, "<UnaryOp>\n");
+            cout << "<UnaryOp>" << endl;
+#endif
             auto tt = parseUnaryExp();
+#ifdef PRINT
+            fprintf(out, "<UnaryExp>\n");
+            cout << "<UnaryExp>" << endl;
+#endif
             return make_unique<UnaryExpAST>(move(t), move(tt));
         }
             break;
         case INTCON:
         case LPARENT: {
             auto t = parsePrimaryExp();
+#ifdef PRINT
+            fprintf(out, "<PrimaryExp>\n");
+            cout << "<PrimaryExp>" << endl;
+#endif
             return make_unique<UnaryExpAST>(move(t));
         }
             break;
@@ -806,6 +990,10 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                         case LPARENT:
                         case INTCON: {
                             auto t = parseFuncRParams();
+#ifdef PRINT
+                            fprintf(out, "<FuncRParams>\n");
+                            cout << "<FuncRParams>" << endl;
+#endif
                             getNextToken();
                             if (CurTok != RPARENT) {
                                 fprintf(stderr, "parseUnaryExp wrong!");
@@ -821,10 +1009,18 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                     break;
                 case LBRACK: {
                     auto t = parsePrimaryExp();
+#ifdef PRINT
+                    fprintf(out, "<PrimaryExp>\n");
+                    cout << "<PrimaryExp>" << endl;
+#endif
                     return make_unique<UnaryExpAST>(move(t));
                 }
                 default: { // Ident {  [ exp ] }
                     auto t = parsePrimaryExp();
+#ifdef PRINT
+                    fprintf(out, "<PrimaryExp>\n");
+                    cout << "<PrimaryExp>" << endl;
+#endif
                     return make_unique<UnaryExpAST>(move(t));
                 }
             }
@@ -849,6 +1045,10 @@ unique_ptr<MulExpAST> Parser::parseMulExp() {
         case INTCON:
         case NOT: {
             auto t = parseUnaryExp();
+#ifdef PRINT
+            fprintf(out, "<UnaryExp>\n");
+            cout << "<UnaryExp>" << endl;
+#endif
             unaryExps.push_back(move(t));
         }
             break;
@@ -867,6 +1067,10 @@ unique_ptr<MulExpAST> Parser::parseMulExp() {
             case INTCON:
             case NOT: {
                 auto t = parseUnaryExp();
+#ifdef PRINT
+                fprintf(out, "<UnaryExp>\n");
+                cout << "<UnaryExp>" << endl;
+#endif
                 unaryExps.push_back(move(t));
             }
                 break;
@@ -889,6 +1093,10 @@ unique_ptr<AddExpAST> Parser::parseAddExp() {
         case INTCON:
         case NOT: {
             auto t = parseMulExp();
+#ifdef PRINT
+            fprintf(out, "<MulExp>\n");
+            cout << "<MulExp>" << endl;
+#endif
             mulExps.push_back(move(t));
         }
             break;
@@ -907,6 +1115,10 @@ unique_ptr<AddExpAST> Parser::parseAddExp() {
             case INTCON:
             case NOT: {
                 auto t = parseMulExp();
+#ifdef PRINT
+                fprintf(out, "<MulExp>\n");
+                cout << "<MulExp>" << endl;
+#endif
                 mulExps.push_back(move(t));
             }
                 break;
@@ -925,6 +1137,10 @@ unique_ptr<ConstExpAST> Parser::parseConstExp() {
         case LPARENT:
         case INTCON: {
             auto t = parseAddExp();
+#ifdef PRINT
+            fprintf(out, "<AddExp>\n");
+            cout << "<AddExp>" << endl;
+#endif
             return make_unique<ConstExpAST>(move(t));
         }
             break;
@@ -946,10 +1162,18 @@ unique_ptr<ConstDefAST> Parser::parseConstDef() {
         if (CurTok == ASSIGN) {
             getNextToken();
             constInitVal = parseConstInitVal();
+#ifdef PRINT
+            fprintf(out, "<ConstInitVal>\n");
+            cout << "<ConstInitVal>" << endl;
+#endif
             break;
         } else if (CurTok == LBRACK) {
             getNextToken();
             auto t = parseConstExp();
+#ifdef PRINT
+            fprintf(out, "<ConstExp>\n");
+            cout << "<ConstExp>" << endl;
+#endif
             constExps.push_back(move(t));
             if (CurTok != RBRACK)
                 exit(-2);
@@ -992,6 +1216,10 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
     if (CurTok != IDENFR)
         exit(-1);
     auto t = parseConstDef();
+#ifdef PRINT
+    fprintf(out, "<ConstDef>\n");
+    cout << "<ConstDef>" << endl;
+#endif
     constDefs.push_back(move(t));
 
     while (CurTok == COMMA) {
@@ -999,6 +1227,10 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
         if (CurTok != IDENFR)
             exit(-1);
         auto t = parseConstDef();
+#ifdef PRINT
+        fprintf(out, "<ConstDef>\n");
+        cout << "<ConstDef>" << endl;
+#endif
         constDefs.push_back(move(t));
     }
     if (CurTok != SEMICN)
@@ -1018,6 +1250,10 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
         case LPARENT:
         case INTCON: {
             exp = parseExp();
+#ifdef PRINT
+            fprintf(out, "<Exp>\n");
+            cout << "<Exp>" << endl;
+#endif
             return make_unique<InitValAST>(move(exp));
         }
             break;
@@ -1033,10 +1269,18 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
                 case INTCON:
                 case LBRACE: {
                     auto t = parseInitVal();
+#ifdef PRINT
+                    fprintf(out, "<InitVal>\n");
+                    cout << "<InitVal>" << endl;
+#endif
                     initVals.push_back(move(t));
                     while (CurTok == COMMA) {
                         getNextToken();
                         auto t = parseInitVal();
+#ifdef PRINT
+                        fprintf(out, "<InitVal>\n");
+                        cout << "<InitVal>" << endl;
+#endif
                         initVals.push_back(move(t));
                     }
                     if (CurTok != RBRACE) {
@@ -1063,7 +1307,7 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
     vector<unique_ptr<ConstExpAST>> constExps;
     unique_ptr<InitValAST> initVal;
     if (CurTok != IDENFR) {
-        fprintf(stderr, "parseVarDef error!\n");
+        fprintf(stderr, "parseVarDef error1\n");
         exit(-1);
     }
     name = identifierStr;
@@ -1071,9 +1315,13 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
     while (CurTok == LBRACK) {
         getNextToken();
         auto t = parseConstExp();
+#ifdef PRINT
+        fprintf(out, "<ConstExp>\n");
+        cout << "<ConstExp>" << endl;
+#endif
         constExps.push_back(move(t));
         if (CurTok != RBRACK) {
-            fprintf(stderr, "parseVarDef error!\n");
+            fprintf(stderr, "parseVarDef error2\n");
             exit(-1);
         }
         getNextToken();
@@ -1082,6 +1330,10 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
     if (CurTok == ASSIGN) {
         getNextToken();
         initVal = parseInitVal();
+#ifdef PRINT
+        fprintf(out, "<InitVal>\n");
+        cout << "<InitVal>" << endl;
+#endif
         return make_unique<VarDefAST>(name, move(constExps), move(initVal));
     } else {
         return make_unique<VarDefAST>(name, move(constExps), nullptr);
@@ -1097,12 +1349,21 @@ unique_ptr<VarDeclAST> Parser::parseVarDecl() {
         exit(-1);
     }
     btype = parseBType();
-    getNextToken();
+
     auto t = parseVarDef();
+#ifdef PRINT
+    fprintf(out, "<VarDef>");
+    cout << "<VarDef>" << endl;
+#endif
     varDefs.push_back(move(t));
+
     while (CurTok == COMMA) {
         getNextToken();
         auto t = parseVarDef();
+#ifdef PRINT
+        fprintf(out, "<VarDef>");
+        cout << "<VarDef>" << endl;
+#endif
         varDefs.push_back(move(t));
     }
 
@@ -1118,11 +1379,19 @@ unique_ptr<DeclAST> Parser::parseDecl() {
     switch (CurTok) {
         case CONSTTK: {
             auto t = parseConstDecl();
+#ifdef PRINT
+            fprintf(out, "<ConstDecl>");
+            cout << "<ConstDecl>" << endl;
+#endif
             return make_unique<DeclAST>(move(t));
         }
             break;
         case INTTK: {
             auto t = parseVarDecl();
+#ifdef PRINT
+            fprintf(out, "<VarDecl>");
+            cout << "<VarDecl>" << endl;
+#endif
             return make_unique<DeclAST>(move(t));
         }
             break;
@@ -1151,22 +1420,35 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
                 break;
             case VOIDTK: {
                 auto func = parseFuncDef();
+#ifdef PRINT
+                fprintf(out, "<FuncDef>");
+                cout << "<FuncDef>" << endl;
+#endif
                 funcs.push_back(move(func));
                 break;
             }
             case INTTK: {
                 PreviewNextToken();
                 switch (PreviewTok) {
-                    case MAINTK:
+                    case MAINTK: {
                         main = parseMainDef();
+#ifdef PRINT
+                        fprintf(out, "<MainFuncDef>");
+                        cout << "<MainFuncDef>" << endl;
+#endif
+                    }
                         break;
-                    case IDENFR:
+                    case IDENFR: {
                         PreviewNextToken();
                         switch (PreviewTok) {
                             case LPARENT://(
                             {
                                 auto func = parseFuncDef();
                                 funcs.push_back(move(func));
+#ifdef PRINT
+                                fprintf(out, "<FuncDef>");
+                                cout << "<FuncDef>" << endl;
+#endif
                             }
                                 break;
                             case ASSIGN: //=
@@ -1179,6 +1461,7 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
                             default:
                                 break;
                         }
+                    }
                         break;
                     default:
                         break;
