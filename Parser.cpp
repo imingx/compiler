@@ -688,6 +688,7 @@ unique_ptr<BlockAST> Parser::parseBlock() {
     }
     getNextToken();
     if (CurTok == RBRACE) {
+        getNextToken();
         return make_unique<BlockAST>(move(blockItems));
     }
 
