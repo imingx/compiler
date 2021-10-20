@@ -1,0 +1,16 @@
+//#include<stdio.h>
+void func(){return;}
+int main()
+{
+    printf("19373136");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    return 0;
+}

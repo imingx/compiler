@@ -1,0 +1,69 @@
+//#include<stdio.h>
+
+// {Decl}------------------------------
+int g_a = 1613;
+int g_b, g_c;
+const int const_a = 1613;
+const int const_b = 1613, const_c = 1613;
+
+// {ConstExp}--------------------------
+const int const_d = 2 + 2 - 2;
+const int const_e = 3 * 3 / 3 % 3;
+const int const_f = -(4);
+const int const_g = +(5);
+const int const_h = const_a;
+
+// {FuncDef}---------------------------
+void func_1(){return;}
+void func_2(int a){int b;b = a;return;}
+void func_3(int a, int b){return;}
+
+int func_4(){return 1;}
+
+void func_5(int a, int b){
+    func_2(a);
+    func_3(a, b);
+    // {Cond}---------------------------
+    if(a == b);
+    if(a != b);
+    if(a > b);
+    if(a < b);
+    if(a <= b);
+    if(a >= b);
+    if(!a);
+    return;
+}
+
+int main()
+{
+    int n, i;
+    //scanf("%d", &n);
+    n = getint();
+    i = 1;
+    1;;{}
+
+    if( i >= 1) i = 1;
+    if( i < 1)  i = 1; 
+    else i = 4;
+
+    while( i > 1)
+    {
+        i = i - 1;
+        if(i > 1)
+            continue;
+        else
+            break;
+    }
+    // {printf}--------------------------
+    printf("19373136\n");
+    printf("i is %d, n is %d\n", i, n);
+    printf("");
+    printf("! ()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~\n");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf(""); 
+    return 0;
+}

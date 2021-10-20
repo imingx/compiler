@@ -1,0 +1,79 @@
+// {Decl}------------------------------
+int g_a = 1613;
+int g_b, g_c;
+int g_arr_a[2], g_arr_b[2][2];
+int g_arr_c[2] = {1, 2};
+int g_arr_d[2][2] = {{1, 2}, {1, 2}};
+const int const_a = 1613;
+const int const_b = 1613, const_c = 1613;
+const int const_arr_a[2] = {1, 2};
+const int const_arr_b[2][2] =  {{1, 2}, {1, 2}};
+
+// {ConstExp}--------------------------
+const int const_d = 2 + 2 - 2;
+const int const_e = 3 * 3 / 3 % 3;
+const int const_f = -(4);
+const int const_g = +(5);
+const int const_h = const_a;
+
+// {FuncDef}---------------------------
+void func_1(){return;}
+void func_2(int a){int b;b = a;return;}
+void func_3(int a, int b){return;}
+void func_4(int arr1[], int arr2[][2], int arr3[ ]){
+    arr1[1] = 1;
+    arr2[1][1] = 1;
+    return;
+}
+
+int func_5(){return 1;}
+
+// {Cond}---------------------------
+void func_6(int a, int b){
+    func_2(a);
+    func_3(a, b);
+    func_4(g_arr_c, g_arr_d, g_arr_d[0]);
+    if(a == b);
+    if(a != b);
+    if(a > b);
+    if(a < b);
+    if(a <= b);
+    if(a >= b);
+    if(!a);
+    return;
+}
+
+int main()
+{
+    int n, i;
+    //scanf("%d", &n);
+    n = getint();
+    i = 1;
+    1;;{}
+
+    if( i >= 1) i = 1;
+    if( i < 1)  i = 1; 
+    else i = 4;
+
+    while( i > 1)
+    {
+        i = i - 1;
+        if(i > 1)
+            continue;
+        else
+            break;
+    }
+    // {printf}--------------------------
+    printf("19373136\n");
+    printf("i is %d, n is %d\n", i, n);
+    printf("");
+    printf("! ()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}~\n");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+    printf("");
+
+    return 0;
+}
