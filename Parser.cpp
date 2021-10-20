@@ -213,13 +213,11 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         fprintf(out, "<FuncFParams>\n");
         cout << "<FuncFParams>" << endl;
 #endif
-    } else {
-        getNextToken();
     }
     if (CurTok != RPARENT) {
         // get )
     }
-    getNextToken();
+    getNextToken(); // get {
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseFuncDef error4\n");
         exit(-4);
@@ -1493,6 +1491,7 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
                                 break;
                             case ASSIGN: //=
                             case LBRACK: //[
+                            case SEMICN:
                             {
                                 auto decl = parseDecl();
                                 decls.push_back(move(decl));
