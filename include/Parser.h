@@ -34,6 +34,8 @@ public:
 
     int PreviewNextToken();
 
+    void syncTokIndex();
+
     Parser(const char *FILE_OUT);
 
     virtual ~Parser();
