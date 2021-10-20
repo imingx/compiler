@@ -977,8 +977,6 @@ unique_ptr<UnaryOpAST> Parser::parseUnaryOp() {
 
 unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
 
-    cout << "curtok is " << tokenName[CurTok] << endl;
-
     switch (CurTok) {
         case PLUS:
         case MINU:
