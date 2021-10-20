@@ -786,8 +786,10 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
         case LBRACE: {
             getNextToken();
             switch (CurTok) {
-                case RBRACE:
+                case RBRACE:{
+                    getNextToken();
                     return make_unique<ConstInitValAST>(move(constInitVals));
+                }
                 case PLUS:
                 case MINU:
                 case IDENFR:
@@ -1271,9 +1273,10 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
 #endif
         constDefs.push_back(move(t));
     }
-    if (CurTok != SEMICN)
+    if (CurTok != SEMICN) {
+        fprintf(stderr, "error\n");
         exit(-4);
-
+    }
     getNextToken();
     return make_unique<ConstDeclAST>(symbol, move(btype), move(constDefs));
 }
