@@ -10,7 +10,8 @@
 # include "AST.h"
 
 
-#define PRINT //控制输出
+//#define LexerPrint //控制词法分析输出
+//#define ParserPrint  //控制语法分析输出
 
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";
