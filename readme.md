@@ -17,14 +17,14 @@
 ```
 (1) type:
 feat		增加特性
-fix			修复错误
+fix	        修复错误
 docs		修改文档
 style		更改空格、缩进、样式，不改变代码逻辑
 refactor	代码重构
 perf		优化相关，提升性能和体验
 test		增加测试用例
 build		依赖相关的内容
-ci			ci配置相关，对k8s, docker的配置文件修改
+ci              ci配置相关，对k8s, docker的配置文件修改
 chore		改变构建流程、增加依赖库和工具
 revert		回滚版本
 
