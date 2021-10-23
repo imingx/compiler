@@ -44,10 +44,11 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 在第二行输入的message称为body，最后还有foot。
 ```
 
+### 参考
 
-
-
-
+1. [unique_ptr][unique_ptr]
+2. [tryC - a small interpreter written by C][tryC - a small interpreter written by C]
+3. [My First Language Frontend with LLVM Tutorial][My First Language Frontend with LLVM Tutorial]
 
 
 
@@ -59,4 +60,6 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 [02_语法分析]: https://github.com/imingx/Compiler/tree/02_Parser  "02_语法分析"
 [文法解读测试用例]: https://github.com/imingx/Compiler/tree/00_%E6%96%87%E6%B3%95%E8%A7%A3%E8%AF%BB_testFile "文法解读测试用例"
 [语法分析测试用例]: https://github.com/imingx/Compiler/tree/02_Parser_testFile "语法分析测试用例"
-
+[unique_ptr]: https://blog.csdn.net/shaosunrise/article/details/85158249 "unique_ptr"
+[My First Language Frontend with LLVM Tutorial]: https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html "My First Language Frontend with LLVM Tutorial"
+[tryC - a small interpreter written by C]: https://github.com/imingx/tryC "tryC - a small interpreter written by C"
