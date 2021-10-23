@@ -2,30 +2,29 @@
 
 using namespace std;
 
-int main() {
+/*
+    cmake_minimum_required(VERSION 3.20)
+    project(Compiler)
 
-    /*
-    1. 使用lexer.getNext(word)读取每个词
-        Word word;
-        while (lexer.getNext(word)) {
-            cout << word.raw << " " << tokenName[word.category] << endl;
-        }
-    2. 或者使用lexer.program()直接将每个词存入Words，然后读取Words，适用于代码不多的情况。
-        lexer.program();
-        for(auto word : words) {
-            cout << word.raw << " " << tokenName[word.category] << endl;
-        }
-    */
+    set(CMAKE_CXX_STANDARD 11)
+
+    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h AST.cpp include/AST.h SymbolTable.cpp include/SymbolTable.h include/TYPE.h ErrorHandle.cpp include/ErrorHandle.h)
+ */
+
+int main() {
+    //Lexer和Parser的输出控制在TYPE.h
 
     // lexer
     Lexer lexer(FILE_IN, FILE_OUT);
     lexer.program();
 
     // parser
+    ErrorHandle errorHandle(ERROR);
+
     Parser parser(FILE_OUT);
     parser.program();
 
-    unique_ptr<CompUnitAST> AST = parser.getAST();
+//    unique_ptr<CompUnitAST> AST = parser.getAST();
 
     return 0;
 }

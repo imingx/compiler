@@ -4,8 +4,18 @@
 
 #ifndef COMPILER_TYPE_H
 #define COMPILER_TYPE_H
+
 #include <bits/stdc++.h>
+
 using namespace std;
+
+#ifndef LexerPrint
+//#define LexerPrint      //控制01词法分析输出
+#endif
+
+#ifndef ParserPrint
+#define ParserPrint   //控制02语法分析输出
+#endif
 
 //rule name
 enum RULE_CATEGORY {

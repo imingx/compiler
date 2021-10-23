@@ -6,10 +6,11 @@
 #define COMPILER_SYMBOLTABLE_H
 
 #include <bits/stdc++.h>
+
 using namespace std;
 
 class SymbolTable {
-private:
+public:
 
 
 };

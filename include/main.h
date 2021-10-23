@@ -8,14 +8,12 @@
 # include "Lexer.h"
 # include "Parser.h"
 # include "AST.h"
-
-
-//#define LexerPrint //控制词法分析输出
-//#define ParserPrint  //控制语法分析输出
+# include "TYPE.h"
+# include "ErrorHandle.h"
 
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";
 static const char *FILE_OUT = "output.txt";
-
+static const char *ERROR = "error.txt";
 
 #endif //COMPILER_MAIN_H

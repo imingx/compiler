@@ -8,6 +8,7 @@
 #include "Lexer.h"
 #include "AST.h"
 #include "TYPE.h"
+#include "ErrorHandle.h"
 
 extern map<int, int> BinopPrecedence;//优先级
 
@@ -27,6 +28,7 @@ private:
     int PreviewTok;
     unique_ptr<CompUnitAST> AST;
 
+    int getLastTokenLine();
     void initBinopPrecedence();
 
 public:

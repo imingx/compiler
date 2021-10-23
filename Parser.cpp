@@ -3,12 +3,19 @@
 //
 
 #include "include/Parser.h"
-#include "include/main.h"
 
 map<int, int> BinopPrecedence;//优先级
+ErrorHandle errorHandle();
 
 void Parser::syncTokIndex() {
     PreviewIndex = index;
+}
+
+int Parser::getLastTokenLine() {
+    if (index > 1 ) {
+        return words[index - 2].line;
+    }
+    return 1;
 }
 
 int Parser::getNextToken() {
@@ -1276,6 +1283,7 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
         constDefs.push_back(move(t));
     }
     if (CurTok != SEMICN) {
+        // i, 缺少分号
         fprintf(stderr, "error\n");
         exit(-4);
     }

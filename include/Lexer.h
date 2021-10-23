@@ -6,6 +6,7 @@
 
 #include <bits/stdc++.h>
 #include "TYPE.h"
+
 using namespace std;
 
 struct Word {

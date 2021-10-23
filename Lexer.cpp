@@ -115,8 +115,8 @@ int Lexer::getNext(Word &w) {
         word.raw = str;
     }
 #ifdef LexerPrint
-    cout << tokenName[word.category] << " " << word.raw << endl;
-    fprintf(out, "%s %s\n", tokenName[word.category], word.raw.c_str());
+    cout << tokenName[word.category] << " " << word.raw << " " << word.line << endl;
+//    fprintf(out, "%s %s\n", tokenName[word.category], word.raw.c_str());
 #endif
     words.push_back(word);
     w = word;
