@@ -45,9 +45,6 @@ public:
 
 class SymbolTable {
 public:
-//    map<string, ConSym> Con;
-//    map<string, VarSym> Var;
-//    map<string, FuncSym> Func;
     vector<ConSym> Con;
     vector<VarSym> Var;
     vector<FuncSym> Func;

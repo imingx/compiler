@@ -11,7 +11,6 @@
 #include "ErrorHandler.h"
 
 
-
 class Parser {
 private:
     FILE *out;
@@ -21,13 +20,14 @@ private:
     int PreviewIndex;
     int CurTok;
     int PreviewTok;
-    unique_ptr<CompUnitAST> AST;
+    shared_ptr<CompUnitAST> AST;
 
     int getLastTokenLine();
+
     int getCurTokenLine();
 
 public:
-    unique_ptr<CompUnitAST> &getAST();
+    shared_ptr<CompUnitAST> &getAST();
 
     void setIndex(int ind);
 
@@ -46,71 +46,71 @@ public:
     //CompUnit
     void handleCompUnit();
 
-    unique_ptr<CompUnitAST> parseCompUnit();
+    shared_ptr<CompUnitAST> parseCompUnit();
 
     //Decl
-    unique_ptr<DeclAST> parseDecl();
+    shared_ptr<DeclAST> parseDecl();
 
-    unique_ptr<ConstDeclAST> parseConstDecl();
+    shared_ptr<ConstDeclAST> parseConstDecl();
 
-    unique_ptr<VarDeclAST> parseVarDecl();
+    shared_ptr<VarDeclAST> parseVarDecl();
 
-    unique_ptr<ConstDefAST> parseConstDef();
+    shared_ptr<ConstDefAST> parseConstDef();
 
-    unique_ptr<BTypeAST> parseBType();
+    shared_ptr<BTypeAST> parseBType();
 
-    unique_ptr<ConstInitValAST> parseConstInitVal();
+    shared_ptr<ConstInitValAST> parseConstInitVal();
 
-    unique_ptr<ConstExpAST> parseConstExp();
+    shared_ptr<ConstExpAST> parseConstExp();
 
-    unique_ptr<AddExpAST> parseAddExp();
+    shared_ptr<AddExpAST> parseAddExp();
 
-    unique_ptr<MulExpAST> parseMulExp();
+    shared_ptr<MulExpAST> parseMulExp();
 
-    unique_ptr<UnaryExpAST> parseUnaryExp();
+    shared_ptr<UnaryExpAST> parseUnaryExp();
 
-    unique_ptr<PrimaryExpAST> parsePrimaryExp();
+    shared_ptr<PrimaryExpAST> parsePrimaryExp();
 
-    unique_ptr<FuncRParamsAST> parseFuncRParams();
+    shared_ptr<FuncRParamsAST> parseFuncRParams();
 
-    unique_ptr<UnaryOpAST> parseUnaryOp();
+    shared_ptr<UnaryOpAST> parseUnaryOp();
 
-    unique_ptr<ExpAST> parseExp();
+    shared_ptr<ExpAST> parseExp();
 
-    unique_ptr<NumberAST> parseNumber();
+    shared_ptr<NumberAST> parseNumber();
 
-    unique_ptr<LValAST> parseLVal();
+    shared_ptr<LValAST> parseLVal();
 
-    unique_ptr<VarDefAST> parseVarDef();
+    shared_ptr<VarDefAST> parseVarDef();
 
-    unique_ptr<InitValAST> parseInitVal();
+    shared_ptr<InitValAST> parseInitVal();
 
-    unique_ptr<FuncTypeAST> parseFuncType();
+    shared_ptr<FuncTypeAST> parseFuncType();
 
-    unique_ptr<FuncFParamsAST> parseFuncFParams();
+    shared_ptr<FuncFParamsAST> parseFuncFParams();
 
-    unique_ptr<FuncFParamAST> parseFuncFParam();
+    shared_ptr<FuncFParamAST> parseFuncFParam();
 
-    unique_ptr<BlockAST> parseBlock();
+    shared_ptr<BlockAST> parseBlock();
 
-    unique_ptr<BlockItemAST> parseBlockItem();
+    shared_ptr<BlockItemAST> parseBlockItem();
 
-    unique_ptr<CondAST> parseCond();
+    shared_ptr<CondAST> parseCond();
 
-    unique_ptr<StmtAST> parseStmt();
+    shared_ptr<StmtAST> parseStmt();
 
-    unique_ptr<LOrExpAST> parseLOrExp();
+    shared_ptr<LOrExpAST> parseLOrExp();
 
-    unique_ptr<LAndExpAST> parseLAndExp();
+    shared_ptr<LAndExpAST> parseLAndExp();
 
-    unique_ptr<EqExpAST> parseEqExp();
+    shared_ptr<EqExpAST> parseEqExp();
 
-    unique_ptr<RelExpAST> parseRelExp();
+    shared_ptr<RelExpAST> parseRelExp();
 
     //FuncDef
-    unique_ptr<FuncDefAST> parseFuncDef();
+    shared_ptr<FuncDefAST> parseFuncDef();
 
-    unique_ptr<MainFuncDefAST> parseMainDef();
+    shared_ptr<MainFuncDefAST> parseMainDef();
 
 };
 

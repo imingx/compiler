@@ -25,10 +25,10 @@ private:
 
     bool isloop;
 
-    unique_ptr<CompUnitAST> &compUnitAst;
+    shared_ptr<CompUnitAST> &compUnitAst;
     FILE *error;
 public:
-    ErrorHandler(const char *ERROR, unique_ptr<CompUnitAST> &compUnitAst);
+    ErrorHandler(const char *ERROR, shared_ptr<CompUnitAST> &compUnitAst);
 
     ~ErrorHandler();
 
@@ -37,21 +37,25 @@ public:
     void print();
 
     //handle error
-    void handleDecl(unique_ptr<DeclAST> &decl);
+    void handleDecl(shared_ptr<DeclAST> &decl);
 
-    void handleConstDecl(unique_ptr<AST> &constDecl);
+    void handleConstDecl(shared_ptr<ConstDeclAST> &constDecl);
 
-    void handleVarDecl(unique_ptr<AST> &varDecl);
+    void handleVarDecl(shared_ptr<VarDeclAST> &varDecl);
 
-    void handleConstDef(unique_ptr<ConstDefAST> &constDef);
+    void handleConstDef(shared_ptr<ConstDefAST> &constDef);
 
-    void handleVarDef(unique_ptr<VarDefAST> &varDef);
+    void handleVarDef(shared_ptr<VarDefAST> &varDef);
 
-    void handleFunc(unique_ptr<FuncDefAST> & funcDef);
+    void handleFunc(shared_ptr<FuncDefAST> &funcDef);
 
-    void handleFuncFParam(unique_ptr<FuncFParamAST> & funcFParam);
+    void handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<VarSym> &parameters);
 
-    void handleBlockItem(unique_ptr<BlockItemAST> & blockItem);
+    void handleBlockItem(shared_ptr<BlockItemAST> &blockItem);
+
+    void handleStmt(shared_ptr<StmtAST> &stmt);
+
+    void handleMainDef(shared_ptr<MainFuncDefAST> &mainFunc);
 };
 
 #endif //COMPILER_ERRORHANDLER_H

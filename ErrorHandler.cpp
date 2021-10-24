@@ -7,7 +7,7 @@
 vector<PIS> errors;
 SymbolTable symbolTable;
 
-void ErrorHandler::handleVarDef(unique_ptr<VarDefAST> &varDef) {
+void ErrorHandler::handleVarDef(shared_ptr<VarDefAST> &varDef) {
     string identName = varDef->name;
     int dimension = varDef->constExps.size();
     int line = varDef->line;
@@ -27,17 +27,16 @@ void ErrorHandler::handleVarDef(unique_ptr<VarDefAST> &varDef) {
     symbolTable.Var.push_back(t);
 }
 
-void ErrorHandler::handleVarDecl(unique_ptr<AST> &varDecl) {
-    VarDeclAST *ptr = dynamic_cast<VarDeclAST *>(varDecl.get());
-    CurType.push(ptr->btype->category);
+void ErrorHandler::handleVarDecl(shared_ptr<VarDeclAST> &varDecl) {
+    CurType.push(varDecl->btype->category);
 
-    for (int i = 0; i < ptr->varDefs.size(); ++i) {
-        handleVarDef(ptr->varDefs[i]);
+    for (int i = 0; i < varDecl->varDefs.size(); ++i) {
+        handleVarDef(varDecl->varDefs[i]);
     }
     CurType.pop();
 }
 
-void ErrorHandler::handleConstDef(unique_ptr<ConstDefAST> &constDef) {
+void ErrorHandler::handleConstDef(shared_ptr<ConstDefAST> &constDef) {
     string identName = constDef->name;
     int dimension = constDef->constExps.size();
     int line = constDef->line;
@@ -60,52 +59,68 @@ void ErrorHandler::handleConstDef(unique_ptr<ConstDefAST> &constDef) {
     symbolTable.Con.push_back(t);
 }
 
-void ErrorHandler::handleConstDecl(unique_ptr<AST> &constDecl) {
-    ConstDeclAST *ptr = dynamic_cast<ConstDeclAST *>(constDecl.get());
-    CurType.push(ptr->btype->category);
+void ErrorHandler::handleConstDecl(shared_ptr<ConstDeclAST> &constDecl) {
 
-    for (int i = 0; i < ptr->constdefs.size(); ++i) {
-        handleConstDef(ptr->constdefs[i]);
+    CurType.push(constDecl->btype->category);
+
+    for (int i = 0; i < constDecl->constdefs.size(); ++i) {
+        handleConstDef(constDecl->constdefs[i]);
     }
     CurType.pop();
 }
 
-void ErrorHandler::handleDecl(unique_ptr<DeclAST> &decl) {
+void ErrorHandler::handleDecl(shared_ptr<DeclAST> &decl) {
     if (decl->type == 0) // var
     {
-        handleVarDecl(decl->decl);
+        shared_ptr<VarDeclAST> p = dynamic_pointer_cast<VarDeclAST>(decl->decl);
+        //dynamic_pointer_cast 可以转换shared_ptr为派生类的shared_ptr
+        //dynamic_cast 可以转换指针为派生类的指针。
+        //static_* 相较于dynamic，可以实现动态类型检查，看是否是该基类的派生类。
+        handleVarDecl(p);
     } else { // const
-        handleConstDecl(decl->decl);
+        shared_ptr<ConstDeclAST> p = dynamic_pointer_cast<ConstDeclAST>(decl->decl);
+        //dynamic_pointer_cast 可以转换shared_ptr为派生类的shared_ptr
+        //dynamic_cast 可以转换指针为派生类的指针。
+        //static_* 相较于dynamic，可以实现动态类型检查，看是否是该基类的派生类。
+        handleConstDecl(p);
     }
 }
 
-void ErrorHandler::handleFuncFParam(unique_ptr<FuncFParamAST> & funcFParam) {
+void ErrorHandler::handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<VarSym> &parameters) {
     CurType.push(funcFParam->bType->category);
     string paramName = funcFParam->name;
     int line = funcFParam->line;
     int dimension = funcFParam->constExps.size();
 
     for (int j = 0; j < symbolTable.Var.size(); ++j) {
-        if (symbolTable.Var[j].name == paramName && symbolTable.Var[j].level == CurLevel){
+        if (symbolTable.Var[j].name == paramName && symbolTable.Var[j].level == CurLevel) {
             errors.push_back({line, "b"}); //名字重复定义
             printf("%d b, param名字重复定义------\n", line);
             CurType.pop();
             return;
         }
     }
+    CurType.pop();
     VarSym t(paramName, CurLevel, dimension);
     symbolTable.Var.push_back(t);
+    parameters.push_back(t);
 }
 
-void ErrorHandler::handleBlockItem(unique_ptr<BlockItemAST> & blockItem) {
-    if (blockItem->type == 0) { //decl
-        handleDecl();
-    } else { //stmt
+void ErrorHandler::handleStmt(shared_ptr<StmtAST> & stmt) {
 
+}
+
+void ErrorHandler::handleBlockItem(shared_ptr<BlockItemAST> &blockItem) {
+    if (blockItem->type == 0) { //decl
+        shared_ptr<DeclAST> decl = dynamic_pointer_cast<DeclAST>(blockItem);
+        handleDecl(decl);
+    } else { //stmt
+        shared_ptr<StmtAST> stmt = dynamic_pointer_cast<StmtAST>(blockItem);
+        handleStmt(stmt);
     }
 }
 
-void ErrorHandler::handleFunc(unique_ptr<FuncDefAST> &funcDef) {
+void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
     CurType.push(funcDef->funcType->category);
     string funcName = funcDef->name;
     int line = funcDef->line;
@@ -113,40 +128,69 @@ void ErrorHandler::handleFunc(unique_ptr<FuncDefAST> &funcDef) {
         if (symbolTable.Func[i].name == funcName) {
             errors.push_back({line, "b"}); //名字重复定义
             printf("%d b, func名字重复定义------\n", line);
-            CurType.pop();
             break;
         }
     }
-    CurLevel ++;
+    CurLevel++;
 
-    unique_ptr<FuncFParamsAST> &funcFParams = funcDef->funcFParams;
-    for (int i = 0; i < funcFParams->funcFParams.size(); ++i) {
-        handleFuncFParam(funcFParams->funcFParams[i]);
+    vector<VarSym>parameters;
+    shared_ptr<FuncFParamsAST> &funcFParams = funcDef->funcFParams;
+    int parameterNum = funcFParams->funcFParams.size();
+    for (int i = 0; i < parameterNum; ++i) {
+        handleFuncFParam(funcFParams->funcFParams[i], parameters);
     }
 
-    vector<unique_ptr<BlockItemAST>> &blockItems = funcDef->block->blockItems;
+    vector<shared_ptr<BlockItemAST>> &blockItems = funcDef->block->blockItems;
     for (int i = 0; i < blockItems.size(); ++i) {
         handleBlockItem(blockItems[i]);
     }
 
     CurType.pop();
+    CurLevel--;
+    FuncSym t(funcName, parameterNum, parameters);
+    symbolTable.Func.push_back(t);
+}
+
+void ErrorHandler::handleMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
+    string name = mainFunc->name;
+    CurType.push(mainFunc->type);
+    int line = mainFunc->line;
+    for (int i = 0; i < symbolTable.Func.size(); ++i) {
+        if (symbolTable.Func[i].name == name) {
+            errors.push_back({line, "b"}); //名字重复定义
+            printf("%d b, mainfunc名字重复定义------\n", line);
+            break;
+        }
+    }
+    CurLevel ++;
+
+    vector<shared_ptr<BlockItemAST>> &blockItems = mainFunc->block->blockItems;
+    for (int i = 0; i < blockItems.size(); ++i) {
+        handleBlockItem(blockItems[i]);
+    }
+
     CurLevel --;
-    symbolTable.Func.push_back(?);
+    CurType.pop();
+    vector<VarSym>parameters;
+    FuncSym t(name, 0, parameters);
+    symbolTable.Func.push_back(t);
 }
 
 void ErrorHandler::program() {
-    vector<unique_ptr<DeclAST>> &decls = (compUnitAst->decls);
+    vector<shared_ptr<DeclAST>> &decls = (compUnitAst->decls);
     for (int i = 0; i < decls.size(); ++i) {
         handleDecl(decls[i]);
     }
-    vector<unique_ptr<FuncDefAST>> &funcs = compUnitAst->funcs;
+    vector<shared_ptr<FuncDefAST>> &funcs = compUnitAst->funcs;
     for (int i = 0; i < funcs.size(); ++i) {
         handleFunc(funcs[i]);
     }
+    shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
+    handleMainDef(mainFunc);
 }
 
 
-ErrorHandler::ErrorHandler(const char *ERROR, unique_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
+ErrorHandler::ErrorHandler(const char *ERROR, shared_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
     this->error = fopen(ERROR, "w");
     this->CurLevel = 0; // 全局默认为零层
     this->isloop = false;

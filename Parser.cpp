@@ -91,23 +91,23 @@ void Parser::handleCompUnit() {
     }
 }
 
-unique_ptr<FuncTypeAST> Parser::parseFuncType() {
+shared_ptr<FuncTypeAST> Parser::parseFuncType() {
     if (CurTok != VOIDTK && CurTok != INTTK) {
         fprintf(stderr, "parseFuncType error!\n");
         exit(-1);
     }
     getNextToken();
-    return make_unique<FuncTypeAST>(CurTok, identifierStr);
+    return make_shared<FuncTypeAST>(CurTok, identifierStr);
 }
 
-unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
+shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
     if (CurTok != INTTK) {
         fprintf(stderr, "parseFuncFParam error!\n");
         exit(-1);
     }
-    unique_ptr<BTypeAST> bType;
+    shared_ptr<BTypeAST> bType;
     string name;
-    vector<unique_ptr<ConstExpAST>> constExps;
+    vector<shared_ptr<ConstExpAST>> constExps;
 
     bType = parseBType();
 
@@ -140,15 +140,15 @@ unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
             } else
                 getNextToken();
         }
-        return make_unique<FuncFParamAST>(move(bType), name, move(constExps), identLine);
+        return make_shared<FuncFParamAST>(move(bType), name, move(constExps), identLine);
     } else {
-        return make_unique<FuncFParamAST>(move(bType), name, move(constExps), identLine);
+        return make_shared<FuncFParamAST>(move(bType), name, move(constExps), identLine);
     }
     return nullptr;
 }
 
-unique_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
-    vector<unique_ptr<FuncFParamAST>> funcFParams;
+shared_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
+    vector<shared_ptr<FuncFParamAST>> funcFParams;
 
     if (CurTok != INTTK) {
         fprintf(stderr, "parseFuncFParams error!\n");
@@ -173,15 +173,15 @@ unique_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
 #endif
         funcFParams.push_back(move(t));
     }
-    return make_unique<FuncFParamsAST>(move(funcFParams));
+    return make_shared<FuncFParamsAST>(move(funcFParams));
 }
 
 
-unique_ptr<FuncDefAST> Parser::parseFuncDef() {
-    unique_ptr<FuncTypeAST> funcType;
+shared_ptr<FuncDefAST> Parser::parseFuncDef() {
+    shared_ptr<FuncTypeAST> funcType;
     string name;
-    unique_ptr<FuncFParamsAST> funcFParams;
-    unique_ptr<BlockAST> block;
+    shared_ptr<FuncFParamsAST> funcFParams;
+    shared_ptr<BlockAST> block;
 
     if (CurTok != VOIDTK && CurTok != INTTK) {
         fprintf(stderr, "parseFuncDef error1\n");
@@ -225,12 +225,12 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
     fprintf(out, "<Block>\n");
     cout << "<Block>" << endl;
 #endif
-    return make_unique<FuncDefAST>(move(funcType), name, move(funcFParams), move(block), identLine);
+    return make_shared<FuncDefAST>(move(funcType), name, move(funcFParams), move(block), identLine);
 }
 
 
-unique_ptr<EqExpAST> Parser::parseEqExp() {
-    vector<unique_ptr<RelExpAST>> relExps;
+shared_ptr<EqExpAST> Parser::parseEqExp() {
+    vector<shared_ptr<RelExpAST>> relExps;
     vector<int> symbols; // ==  !=
     switch (CurTok) {
         case PLUS:
@@ -259,7 +259,7 @@ unique_ptr<EqExpAST> Parser::parseEqExp() {
 #endif
                 relExps.push_back(move(t));
             }
-            return make_unique<EqExpAST>(symbols, move(relExps));
+            return make_shared<EqExpAST>(symbols, move(relExps));
         }
             break;
         default: {
@@ -270,8 +270,8 @@ unique_ptr<EqExpAST> Parser::parseEqExp() {
     return nullptr;
 }
 
-unique_ptr<RelExpAST> Parser::parseRelExp() {
-    vector<unique_ptr<AddExpAST>> addExps;
+shared_ptr<RelExpAST> Parser::parseRelExp() {
+    vector<shared_ptr<AddExpAST>> addExps;
     vector<int> symbols; // ==  !=
     switch (CurTok) {
         case PLUS:
@@ -301,7 +301,7 @@ unique_ptr<RelExpAST> Parser::parseRelExp() {
 #endif
                 addExps.push_back(move(t));
             }
-            return make_unique<RelExpAST>(symbols, move(addExps));
+            return make_shared<RelExpAST>(symbols, move(addExps));
         }
             break;
         default: {
@@ -312,8 +312,8 @@ unique_ptr<RelExpAST> Parser::parseRelExp() {
     return nullptr;
 }
 
-unique_ptr<LAndExpAST> Parser::parseLAndExp() {
-    vector<unique_ptr<EqExpAST>> eqExps;
+shared_ptr<LAndExpAST> Parser::parseLAndExp() {
+    vector<shared_ptr<EqExpAST>> eqExps;
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -340,7 +340,7 @@ unique_ptr<LAndExpAST> Parser::parseLAndExp() {
 #endif
                 eqExps.push_back(move(t));
             }
-            return make_unique<LAndExpAST>(move(eqExps));
+            return make_shared<LAndExpAST>(move(eqExps));
         }
             break;
         default: {
@@ -351,8 +351,8 @@ unique_ptr<LAndExpAST> Parser::parseLAndExp() {
     return nullptr;
 }
 
-unique_ptr<LOrExpAST> Parser::parseLOrExp() {
-    vector<unique_ptr<LAndExpAST>> lAndExps;
+shared_ptr<LOrExpAST> Parser::parseLOrExp() {
+    vector<shared_ptr<LAndExpAST>> lAndExps;
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -379,7 +379,7 @@ unique_ptr<LOrExpAST> Parser::parseLOrExp() {
 #endif
                 lAndExps.push_back(move(t));
             }
-            return make_unique<LOrExpAST>(move(lAndExps));
+            return make_shared<LOrExpAST>(move(lAndExps));
         }
             break;
         default: {
@@ -390,7 +390,7 @@ unique_ptr<LOrExpAST> Parser::parseLOrExp() {
     return nullptr;
 }
 
-unique_ptr<CondAST> Parser::parseCond() {
+shared_ptr<CondAST> Parser::parseCond() {
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -403,7 +403,7 @@ unique_ptr<CondAST> Parser::parseCond() {
             fprintf(out, "<LOrExp>\n");
             cout << "<LOrExp>" << endl;
 #endif
-            return make_unique<CondAST>(move(t));
+            return make_shared<CondAST>(move(t));
         }
             break;
         default: {
@@ -414,38 +414,38 @@ unique_ptr<CondAST> Parser::parseCond() {
     return nullptr;
 }
 
-unique_ptr<StmtAST> Parser::parseStmt() {
+shared_ptr<StmtAST> Parser::parseStmt() {
     //1 lval = exp
-    unique_ptr<LValAST> lVal;
-    unique_ptr<ExpAST> exp;
+    shared_ptr<LValAST> lVal;
+    shared_ptr<ExpAST> exp;
 
     //2 [exp];
-    unique_ptr<ExpAST> expSingle = nullptr;
+    shared_ptr<ExpAST> expSingle = nullptr;
 
     //3 block
-    unique_ptr<BlockAST> block;
+    shared_ptr<BlockAST> block;
 
     //4 if
-    unique_ptr<CondAST> condIf;
-    unique_ptr<StmtAST> stmtIf = nullptr;
-    unique_ptr<StmtAST> stmtElse = nullptr;
+    shared_ptr<CondAST> condIf;
+    shared_ptr<StmtAST> stmtIf = nullptr;
+    shared_ptr<StmtAST> stmtElse = nullptr;
 
     //5 while
-    unique_ptr<CondAST> condWhile = nullptr;
-    unique_ptr<StmtAST> stmtWhile = nullptr;
+    shared_ptr<CondAST> condWhile = nullptr;
+    shared_ptr<StmtAST> stmtWhile = nullptr;
 
     //6 break or continue;
     int category;
 
     //7 return;
-    unique_ptr<ExpAST> expReturn = nullptr;
+    shared_ptr<ExpAST> expReturn = nullptr;
 
     //8 lval = getint();
-    unique_ptr<LValAST> lValGetint = nullptr;
+    shared_ptr<LValAST> lValGetint = nullptr;
 
     //9 printf
     string formatString;
-    vector<unique_ptr<ExpAST>> expsPrintf;
+    vector<shared_ptr<ExpAST>> expsPrintf;
 
     switch (CurTok) {
         case PRINTFTK: {
@@ -476,7 +476,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 }
                 if (formatString[i] == '\\') {
                     if (formatString[i + 1] == 'n') {
-                        ++ i;
+                        ++i;
                         continue;
                     } else {
                         errors.push_back({getCurTokenLine(), "a"});
@@ -514,7 +514,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 printf("%d i, 分号缺失--------------\n", getLastTokenLine());
             } else
                 getNextToken(); //get next
-            return make_unique<StmtAST>(formatString, move(expsPrintf), printfLine);
+            return make_shared<StmtAST>(formatString, move(expsPrintf), printfLine);
         }
             break;
         case RETURNTK: {
@@ -522,7 +522,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             getNextToken();
             if (CurTok == SEMICN) {
                 getNextToken();
-                return make_unique<StmtAST>(move(expReturn), "RETURN", returnLine);
+                return make_shared<StmtAST>(move(expReturn), "RETURN", returnLine);
             } else {
                 expReturn = parseExp();
 #ifdef ParserPrint
@@ -534,7 +534,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     printf("%d i, 分号缺失--------------\n", getLastTokenLine());
                 } else
                     getNextToken();
-                return make_unique<StmtAST>(move(expReturn), "RETURN", returnLine);
+                return make_shared<StmtAST>(move(expReturn), "RETURN", returnLine);
             }
         }
             break;
@@ -548,7 +548,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 printf("%d i, 分号缺失----------------\n", getLastTokenLine());
             } else
                 getNextToken(); //get next
-            return make_unique<StmtAST>(category, bcLine);
+            return make_shared<StmtAST>(category, bcLine);
         }
             break;
         case WHILETK: {
@@ -570,7 +570,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
-            return make_unique<StmtAST>(move(condWhile), move(stmtWhile));
+            return make_shared<StmtAST>(move(condWhile), move(stmtWhile));
         }
             break;
         case IFTK: {
@@ -599,7 +599,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 cout << "<Stmt>" << endl;
 #endif
             }
-            return make_unique<StmtAST>(move(condIf), move(stmtIf), move(stmtElse));
+            return make_shared<StmtAST>(move(condIf), move(stmtIf), move(stmtElse));
         }
             break;
         case LBRACE: {
@@ -608,12 +608,12 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             fprintf(out, "<Block>\n");
             cout << "<Block>" << endl;
 #endif
-            return make_unique<StmtAST>(move(block));
+            return make_shared<StmtAST>(move(block));
         }
             break;
         case SEMICN: {
             getNextToken();
-            return make_unique<StmtAST>(move(expSingle));
+            return make_shared<StmtAST>(move(expSingle));
         }
             break;
         case PLUS:
@@ -630,7 +630,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 printf("%d i, 分号缺失---------------\n", getLastTokenLine());
             } else
                 getNextToken(); //get next
-            return make_unique<StmtAST>(move(expSingle));
+            return make_shared<StmtAST>(move(expSingle));
         }
             break;
         case IDENFR: {
@@ -647,7 +647,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
                 } else
                     getNextToken(); //get next;
-                return make_unique<StmtAST>(move(expSingle));
+                return make_shared<StmtAST>(move(expSingle));
             }
             bool flag = false;
             int ind = this->index;
@@ -699,7 +699,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                         printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
                     } else
                         getNextToken();  //next
-                    return make_unique<StmtAST>(move(lValGetint), identLine);
+                    return make_shared<StmtAST>(move(lValGetint), identLine);
                 } else {
                     lVal = parseLVal(); // =
 #ifdef ParserPrint
@@ -717,7 +717,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                         printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
                     } else
                         getNextToken(); //next
-                    return make_unique<StmtAST>(move(lVal), move(exp), identLine);
+                    return make_shared<StmtAST>(move(lVal), move(exp), identLine);
                 }
             } else {
                 //没有=
@@ -731,7 +731,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
                 } else
                     getNextToken(); //get next;
-                return make_unique<StmtAST>(move(expSingle));
+                return make_shared<StmtAST>(move(expSingle));
             }
 
         }
@@ -740,12 +740,12 @@ unique_ptr<StmtAST> Parser::parseStmt() {
     return nullptr;
 }
 
-unique_ptr<BlockItemAST> Parser::parseBlockItem() {
+shared_ptr<BlockItemAST> Parser::parseBlockItem() {
     switch (CurTok) {
         case CONSTTK:
         case INTTK: {
             auto t = parseDecl();
-            return make_unique<BlockItemAST>(move(t), 0);
+            return make_shared<BlockItemAST>(move(t), 0);
         }
             break;
         case IDENFR:
@@ -768,7 +768,7 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
-            return make_unique<BlockItemAST>(move(t), 1);
+            return make_shared<BlockItemAST>(move(t), 1);
         }
             break;
         default: {
@@ -780,8 +780,8 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
     return nullptr;
 }
 
-unique_ptr<BlockAST> Parser::parseBlock() {
-    vector<unique_ptr<BlockItemAST>> blockItems;
+shared_ptr<BlockAST> Parser::parseBlock() {
+    vector<shared_ptr<BlockItemAST>> blockItems;
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseBlock wrong!\n");
         exit(-1);
@@ -790,7 +790,7 @@ unique_ptr<BlockAST> Parser::parseBlock() {
     if (CurTok == RBRACE) {
         int rbraceLine = getCurTokenLine();
         getNextToken();
-        return make_unique<BlockAST>(move(blockItems), rbraceLine);
+        return make_shared<BlockAST>(move(blockItems), rbraceLine);
     }
 
     while (true) {
@@ -831,15 +831,16 @@ unique_ptr<BlockAST> Parser::parseBlock() {
     }
     int rbraceLine = getCurTokenLine();
     getNextToken();
-    return make_unique<BlockAST>(move(blockItems), rbraceLine);
+    return make_shared<BlockAST>(move(blockItems), rbraceLine);
 }
 
-unique_ptr<MainFuncDefAST> Parser::parseMainDef() {
+shared_ptr<MainFuncDefAST> Parser::parseMainDef() {
     if (CurTok != INTTK) {
         fprintf(stderr, "parseMainDef wrong!\n");
         exit(-1);
     }
     getNextToken();
+    int mainLine = getCurTokenLine();
     if (CurTok != MAINTK) {
         fprintf(stderr, "parseMainDef wrong!\n");
         exit(-1);
@@ -864,14 +865,14 @@ unique_ptr<MainFuncDefAST> Parser::parseMainDef() {
     fprintf(out, "<Block>\n");
     cout << "<Block>" << endl;
 #endif
-    return make_unique<MainFuncDefAST>(move(t));
+    return make_shared<MainFuncDefAST>(move(t), mainLine);
 }
 
 
 //todo
-unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
-    unique_ptr<ConstExpAST> constExp;
-    vector<unique_ptr<ConstInitValAST>> constInitVals;
+shared_ptr<ConstInitValAST> Parser::parseConstInitVal() {
+    shared_ptr<ConstExpAST> constExp;
+    vector<shared_ptr<ConstInitValAST>> constInitVals;
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -883,7 +884,7 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
             fprintf(out, "<ConstExp>\n");
             cout << "<ConstExp>" << endl;
 #endif
-            return make_unique<ConstInitValAST>(move(constExp));
+            return make_shared<ConstInitValAST>(move(constExp));
         }
             break;
         case LBRACE: {
@@ -891,7 +892,7 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
             switch (CurTok) {
                 case RBRACE: {
                     getNextToken();
-                    return make_unique<ConstInitValAST>(move(constInitVals));
+                    return make_shared<ConstInitValAST>(move(constInitVals));
                 }
                 case PLUS:
                 case MINU:
@@ -919,7 +920,7 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
                         exit(-1);
                     }
                     getNextToken();
-                    return make_unique<ConstInitValAST>(move(constInitVals));
+                    return make_shared<ConstInitValAST>(move(constInitVals));
                 }
                     break;
             }
@@ -933,22 +934,22 @@ unique_ptr<ConstInitValAST> Parser::parseConstInitVal() {
     return nullptr;
 }
 
-unique_ptr<NumberAST> Parser::parseNumber() {
+shared_ptr<NumberAST> Parser::parseNumber() {
     if (CurTok != INTCON) {
         fprintf(stderr, "parseNumber error!");
         exit(-1);
     }
     long long number = stoll(identifierStr.c_str());
     getNextToken();
-    return make_unique<NumberAST>(number, identifierStr);
+    return make_shared<NumberAST>(number, identifierStr);
 }
 
-unique_ptr<LValAST> Parser::parseLVal() {
+shared_ptr<LValAST> Parser::parseLVal() {
     if (CurTok != IDENFR) {
         fprintf(stderr, "parseLVal error!");
         exit(-1);
     }
-    vector<unique_ptr<ExpAST>> exps;
+    vector<shared_ptr<ExpAST>> exps;
     string name = identifierStr;
     int identLine = getCurTokenLine();
     getNextToken();
@@ -975,10 +976,10 @@ unique_ptr<LValAST> Parser::parseLVal() {
                 break;
         }
     }
-    return make_unique<LValAST>(name, move(exps), identLine);
+    return make_shared<LValAST>(name, move(exps), identLine);
 }
 
-unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
+shared_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
     switch (CurTok) {
         case INTCON: {
             auto t = parseNumber();
@@ -986,7 +987,7 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             fprintf(out, "<Number>\n");
             cout << "<Number>" << endl;
 #endif
-            return make_unique<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t));
         }
         case LPARENT: {
             getNextToken();
@@ -1000,7 +1001,7 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
                 printf("%d j, )缺失-----------------\n", getLastTokenLine());
             } else
                 getNextToken();
-            return make_unique<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t));
         }
             break;
         case IDENFR: {
@@ -1009,7 +1010,7 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             fprintf(out, "<LVal>\n");
             cout << "<LVal>" << endl;
 #endif
-            return make_unique<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t));
         }
             break;
         default:
@@ -1018,7 +1019,7 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
     return nullptr;
 }
 
-unique_ptr<ExpAST> Parser::parseExp() {
+shared_ptr<ExpAST> Parser::parseExp() {
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -1031,7 +1032,7 @@ unique_ptr<ExpAST> Parser::parseExp() {
             fprintf(out, "<AddExp>\n");
             cout << "<AddExp>" << endl;
 #endif
-            return make_unique<ExpAST>(move(t));
+            return make_shared<ExpAST>(move(t));
         }
             break;
         default:
@@ -1040,8 +1041,8 @@ unique_ptr<ExpAST> Parser::parseExp() {
     return nullptr;
 }
 
-unique_ptr<FuncRParamsAST> Parser::parseFuncRParams() {
-    vector<unique_ptr<ExpAST>> exps;
+shared_ptr<FuncRParamsAST> Parser::parseFuncRParams() {
+    vector<shared_ptr<ExpAST>> exps;
     while (true) {
         switch (CurTok) {
             case PLUS:
@@ -1067,18 +1068,18 @@ unique_ptr<FuncRParamsAST> Parser::parseFuncRParams() {
         else
             getNextToken();
     }
-    return make_unique<FuncRParamsAST>(move(exps));
+    return make_shared<FuncRParamsAST>(move(exps));
 }
 
-unique_ptr<UnaryOpAST> Parser::parseUnaryOp() {
+shared_ptr<UnaryOpAST> Parser::parseUnaryOp() {
     if (CurTok != PLUS && CurTok != MINU && CurTok != NOT) {
         fprintf(stderr, "parseUnaryOp error!");
     }
     getNextToken();
-    return make_unique<UnaryOpAST>(CurTok);
+    return make_shared<UnaryOpAST>(CurTok);
 }
 
-unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
+shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
 
     switch (CurTok) {
         case PLUS:
@@ -1094,7 +1095,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             fprintf(out, "<UnaryExp>\n");
             cout << "<UnaryExp>" << endl;
 #endif
-            return make_unique<UnaryExpAST>(move(t), move(tt));
+            return make_shared<UnaryExpAST>(move(t), move(tt));
         }
             break;
         case INTCON:
@@ -1104,7 +1105,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             fprintf(out, "<PrimaryExp>\n");
             cout << "<PrimaryExp>" << endl;
 #endif
-            return make_unique<UnaryExpAST>(move(t));
+            return make_shared<UnaryExpAST>(move(t));
         }
             break;
         case IDENFR: {
@@ -1132,12 +1133,12 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                                 printf("%d j, )缺失-----------------\n", getLastTokenLine());
                             } else
                                 getNextToken();
-                            return make_unique<UnaryExpAST>(name, move(t), identLine);
+                            return make_shared<UnaryExpAST>(name, move(t), identLine);
                         }
                             break;
                         case RPARENT: {
                             getNextToken();
-                            return make_unique<UnaryExpAST>(name, nullptr, identLine);
+                            return make_shared<UnaryExpAST>(name, nullptr, identLine);
                         }
                             break;
                         default: {
@@ -1145,7 +1146,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                                 errors.push_back({getLastTokenLine(), "j"});
                                 printf("%d j, )缺失-----------------\n", getLastTokenLine());
                             }
-                            return make_unique<UnaryExpAST>(name, nullptr, identLine);
+                            return make_shared<UnaryExpAST>(name, nullptr, identLine);
                         }
                             break;
                     }
@@ -1157,7 +1158,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                     fprintf(out, "<PrimaryExp>\n");
                     cout << "<PrimaryExp>" << endl;
 #endif
-                    return make_unique<UnaryExpAST>(move(t));
+                    return make_shared<UnaryExpAST>(move(t));
                 }
                 default: { // Ident {  [ exp ] }
                     auto t = parsePrimaryExp();
@@ -1165,7 +1166,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                     fprintf(out, "<PrimaryExp>\n");
                     cout << "<PrimaryExp>" << endl;
 #endif
-                    return make_unique<UnaryExpAST>(move(t));
+                    return make_shared<UnaryExpAST>(move(t));
                 }
             }
         }
@@ -1179,8 +1180,8 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
     return nullptr;
 }
 
-unique_ptr<MulExpAST> Parser::parseMulExp() {
-    vector<unique_ptr<UnaryExpAST>> unaryExps;
+shared_ptr<MulExpAST> Parser::parseMulExp() {
+    vector<shared_ptr<UnaryExpAST>> unaryExps;
     vector<int> symbol; // * % /
     switch (CurTok) {
         case PLUS:
@@ -1227,12 +1228,12 @@ unique_ptr<MulExpAST> Parser::parseMulExp() {
                 exit(-1);
         }
     }
-    return make_unique<MulExpAST>(symbol, move(unaryExps));
+    return make_shared<MulExpAST>(symbol, move(unaryExps));
 }
 
 //todo
-unique_ptr<AddExpAST> Parser::parseAddExp() {
-    vector<unique_ptr<MulExpAST>> mulExps;
+shared_ptr<AddExpAST> Parser::parseAddExp() {
+    vector<shared_ptr<MulExpAST>> mulExps;
     vector<int> symbol; // + 或 - 
     switch (CurTok) {
         case PLUS:
@@ -1279,10 +1280,10 @@ unique_ptr<AddExpAST> Parser::parseAddExp() {
                 exit(-1);
         }
     }
-    return make_unique<AddExpAST>(symbol, move(mulExps));
+    return make_shared<AddExpAST>(symbol, move(mulExps));
 }
 
-unique_ptr<ConstExpAST> Parser::parseConstExp() {
+shared_ptr<ConstExpAST> Parser::parseConstExp() {
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -1294,7 +1295,7 @@ unique_ptr<ConstExpAST> Parser::parseConstExp() {
             fprintf(out, "<AddExp>\n");
             cout << "<AddExp>" << endl;
 #endif
-            return make_unique<ConstExpAST>(move(t));
+            return make_shared<ConstExpAST>(move(t));
         }
             break;
         default:
@@ -1303,10 +1304,10 @@ unique_ptr<ConstExpAST> Parser::parseConstExp() {
     return nullptr;
 }
 
-unique_ptr<ConstDefAST> Parser::parseConstDef() {
+shared_ptr<ConstDefAST> Parser::parseConstDef() {
     string name;
-    vector<unique_ptr<ConstExpAST>> constExps;
-    unique_ptr<ConstInitValAST> constInitVal;
+    vector<shared_ptr<ConstExpAST>> constExps;
+    shared_ptr<ConstInitValAST> constInitVal;
     if (CurTok != IDENFR)
         exit(-1);
     name = identifierStr;
@@ -1340,26 +1341,26 @@ unique_ptr<ConstDefAST> Parser::parseConstDef() {
         }
     }
 
-    return make_unique<ConstDefAST>(name, move(constExps), move(constInitVal), identLine);
+    return make_shared<ConstDefAST>(name, move(constExps), move(constInitVal), identLine);
 }
 
-unique_ptr<BTypeAST> Parser::parseBType() {
+shared_ptr<BTypeAST> Parser::parseBType() {
     switch (CurTok) {
         case INTTK:
             getNextToken();
-            return make_unique<BTypeAST>(CurTok, identifierStr);
+            return make_shared<BTypeAST>(CurTok, identifierStr);
         default:
             exit(-1);
     }
     return nullptr;
 }
 
-unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
+shared_ptr<ConstDeclAST> Parser::parseConstDecl() {
     if (CurTok != CONSTTK)
         exit(-1);
     string symbol = identifierStr;
-    unique_ptr<BTypeAST> btype;
-    vector<unique_ptr<ConstDefAST>> constDefs;
+    shared_ptr<BTypeAST> btype;
+    vector<shared_ptr<ConstDefAST>> constDefs;
     getNextToken();
     switch (CurTok) {
         case INTTK:
@@ -1396,12 +1397,12 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
         printf("%d i, 分号缺失---------------\n", getLastTokenLine());
     } else
         getNextToken();
-    return make_unique<ConstDeclAST>(symbol, move(btype), move(constDefs));
+    return make_shared<ConstDeclAST>(symbol, move(btype), move(constDefs));
 }
 
-unique_ptr<InitValAST> Parser::parseInitVal() {
-    unique_ptr<ExpAST> exp;
-    vector<unique_ptr<InitValAST>> initVals;
+shared_ptr<InitValAST> Parser::parseInitVal() {
+    shared_ptr<ExpAST> exp;
+    vector<shared_ptr<InitValAST>> initVals;
     switch (CurTok) {
         case PLUS:
         case MINU:
@@ -1413,14 +1414,14 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
-            return make_unique<InitValAST>(move(exp));
+            return make_shared<InitValAST>(move(exp));
         }
             break;
         case LBRACE: {
             getNextToken();
             switch (CurTok) {
                 case RBRACE:
-                    return make_unique<InitValAST>(move(initVals));
+                    return make_shared<InitValAST>(move(initVals));
                 case PLUS:
                 case MINU:
                 case IDENFR:
@@ -1447,7 +1448,7 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
                         exit(-1);
                     }
                     getNextToken();
-                    return make_unique<InitValAST>(move(initVals));
+                    return make_shared<InitValAST>(move(initVals));
                 }
                     break;
             }
@@ -1461,10 +1462,10 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
     return nullptr;
 }
 
-unique_ptr<VarDefAST> Parser::parseVarDef() {
+shared_ptr<VarDefAST> Parser::parseVarDef() {
     string name;
-    vector<unique_ptr<ConstExpAST>> constExps;
-    unique_ptr<InitValAST> initVal;
+    vector<shared_ptr<ConstExpAST>> constExps;
+    shared_ptr<InitValAST> initVal;
     if (CurTok != IDENFR) {
         fprintf(stderr, "parseVarDef error1\n");
         exit(-1);
@@ -1494,16 +1495,16 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
         fprintf(out, "<InitVal>\n");
         cout << "<InitVal>" << endl;
 #endif
-        return make_unique<VarDefAST>(name, move(constExps), move(initVal), identLine);
+        return make_shared<VarDefAST>(name, move(constExps), move(initVal), identLine);
     } else {
-        return make_unique<VarDefAST>(name, move(constExps), nullptr, identLine);
+        return make_shared<VarDefAST>(name, move(constExps), nullptr, identLine);
     }
     return nullptr;
 }
 
-unique_ptr<VarDeclAST> Parser::parseVarDecl() {
-    unique_ptr<BTypeAST> btype;
-    vector<unique_ptr<VarDefAST>> varDefs;
+shared_ptr<VarDeclAST> Parser::parseVarDecl() {
+    shared_ptr<BTypeAST> btype;
+    vector<shared_ptr<VarDefAST>> varDefs;
     if (CurTok != INTTK) {
         fprintf(stderr, "parseVarDecl error!");
         exit(-1);
@@ -1532,10 +1533,10 @@ unique_ptr<VarDeclAST> Parser::parseVarDecl() {
         printf("%d i, 分号缺失---------------\n", getLastTokenLine());
     } else
         getNextToken();
-    return make_unique<VarDeclAST>(move(btype), move(varDefs));
+    return make_shared<VarDeclAST>(move(btype), move(varDefs));
 }
 
-unique_ptr<DeclAST> Parser::parseDecl() {
+shared_ptr<DeclAST> Parser::parseDecl() {
     switch (CurTok) {
         case CONSTTK: {
             auto t = parseConstDecl();
@@ -1543,7 +1544,7 @@ unique_ptr<DeclAST> Parser::parseDecl() {
             fprintf(out, "<ConstDecl>\n");
             cout << "<ConstDecl>" << endl;
 #endif
-            return make_unique<DeclAST>(move(t), 1);
+            return make_shared<DeclAST>(move(t), 1);
         }
             break;
         case INTTK: {
@@ -1552,7 +1553,7 @@ unique_ptr<DeclAST> Parser::parseDecl() {
             fprintf(out, "<VarDecl>\n");
             cout << "<VarDecl>" << endl;
 #endif
-            return make_unique<DeclAST>(move(t), 0);
+            return make_shared<DeclAST>(move(t), 0);
         }
             break;
         default:
@@ -1562,10 +1563,10 @@ unique_ptr<DeclAST> Parser::parseDecl() {
     return nullptr;
 }
 
-unique_ptr<CompUnitAST> Parser::parseCompUnit() {
-    vector<unique_ptr<DeclAST>> decls;
-    vector<unique_ptr<FuncDefAST>> funcs;
-    unique_ptr<MainFuncDefAST> main;
+shared_ptr<CompUnitAST> Parser::parseCompUnit() {
+    vector<shared_ptr<DeclAST>> decls;
+    vector<shared_ptr<FuncDefAST>> funcs;
+    shared_ptr<MainFuncDefAST> main;
     while (true) {
         switch (CurTok) {
             case EOF:
@@ -1635,9 +1636,9 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
             break;
         }
     }
-    return make_unique<CompUnitAST>(move(decls), move(funcs), move(main));
+    return make_shared<CompUnitAST>(move(decls), move(funcs), move(main));
 }
 
-unique_ptr<CompUnitAST>& Parser::getAST() {
+shared_ptr<CompUnitAST> &Parser::getAST() {
     return AST;
 }
