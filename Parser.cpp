@@ -207,7 +207,8 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-3);
     }
     getNextToken();
-    if (CurTok != RPARENT) {
+
+    if (CurTok == INTTK) {
         funcFParams = parseFuncFParams();
 #ifdef PRINT
         fprintf(out, "<FuncFParams>\n");
