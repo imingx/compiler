@@ -88,7 +88,7 @@ Parser::~Parser() {
 }
 
 void Parser::handleCompUnit() {
-    if (parseCompUnit()) {
+    if (AST = parseCompUnit()) {
 #ifdef PRINT
         fprintf(out, "<CompUnit>\n");
         cout << "<CompUnit>" << endl;
