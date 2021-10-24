@@ -64,12 +64,13 @@ void Parser::handleCompUnit() {
 }
 
 unique_ptr<FuncTypeAST> Parser::parseFuncType() {
-    if (CurTok != VOIDTK && CurTok != INTTK) {
+    int type = CurTok;
+    if (type != VOIDTK && type != INTTK) {
         fprintf(stderr, "parseFuncType error!\n");
         exit(-1);
     }
     getNextToken();
-    return make_unique<FuncTypeAST>(CurTok, identifierStr);
+    return make_unique<FuncTypeAST>(type, identifierStr);
 }
 
 unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
@@ -151,7 +152,7 @@ unique_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
 unique_ptr<FuncDefAST> Parser::parseFuncDef() {
     unique_ptr<FuncTypeAST> funcType;
     string name;
-    unique_ptr<FuncFParamsAST> funcFParams;
+    unique_ptr<FuncFParamsAST> funcFParams = nullptr;
     unique_ptr<BlockAST> block;
 
     if (CurTok != VOIDTK && CurTok != INTTK) {
@@ -1271,8 +1272,10 @@ unique_ptr<InitValAST> Parser::parseInitVal() {
         case LBRACE: {
             getNextToken();
             switch (CurTok) {
-                case RBRACE:
+                case RBRACE: {
+                    getNextToken();
                     return make_unique<InitValAST>(move(initVals));
+                }
                 case PLUS:
                 case MINU:
                 case IDENFR:
