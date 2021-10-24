@@ -9,8 +9,6 @@
 #include "AST.h"
 #include "TYPE.h"
 
-extern map<int, int> BinopPrecedence;//优先级
-
 template<typename T, typename... Ts>
 std::unique_ptr<T> make_unique(Ts &&... params) {
     return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
@@ -26,8 +24,6 @@ private:
     int CurTok;
     int PreviewTok;
     unique_ptr<CompUnitAST> AST;
-
-    void initBinopPrecedence();
 
 public:
     unique_ptr<CompUnitAST> getAST();

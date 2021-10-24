@@ -5,8 +5,6 @@
 #include "include/Parser.h"
 #include "include/main.h"
 
-map<int, int> BinopPrecedence;//优先级
-
 void Parser::syncTokIndex() {
     PreviewIndex = index;
 }
@@ -41,36 +39,6 @@ int Parser::PreviewNextToken() {
     }
 }
 
-void Parser::initBinopPrecedence() {
-
-    BinopPrecedence[LPARENT] = 45; //(
-    BinopPrecedence[RPARENT] = 45; //)
-    BinopPrecedence[LBRACK] = 45; // [
-    BinopPrecedence[RBRACK] = 45; // ]
-
-    BinopPrecedence[NOT] = 40; // !
-
-    BinopPrecedence[MULT] = 35; // *
-    BinopPrecedence[DIV] = 35; // /
-    BinopPrecedence[MOD] = 35; // %
-
-    BinopPrecedence[PLUS] = 30; // +
-    BinopPrecedence[MINU] = 30; // -
-
-    BinopPrecedence[LSS] = 25; // <
-    BinopPrecedence[LEQ] = 25; // <=
-    BinopPrecedence[GRE] = 25; // >
-    BinopPrecedence[GEQ] = 25; // >=
-
-    BinopPrecedence[EQL] = 20; // ==
-    BinopPrecedence[NEQ] = 20; // !=
-
-    BinopPrecedence[AND] = 15; // &&
-    BinopPrecedence[OR] = 10;  // ||
-    BinopPrecedence[ASSIGN] = 5; // =
-    BinopPrecedence[COMMA] = 1; // ,
-}
-
 void Parser::program() {
     getNextToken();
     handleCompUnit();
@@ -80,7 +48,6 @@ Parser::Parser(const char *FILE_OUT) {
     this->out = fopen(FILE_OUT, "w");
     this->index = 0;
     this->nowLevel = 0;
-    this->initBinopPrecedence();
 }
 
 Parser::~Parser() {
