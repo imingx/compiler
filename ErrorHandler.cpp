@@ -456,6 +456,9 @@ void ErrorHandler::handleStmt(shared_ptr<StmtAST> &stmt) {
                 errors.push_back({stmt->line, "l"});
                 printf("%d l, printf参数不匹配-----\n", stmt->line);
             }
+            for (int i = 0; i < stmt->expsPrintf.size(); ++i) {
+                handleExp(stmt->expsPrintf[i]);
+            }
         }
             break;
     }
