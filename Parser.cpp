@@ -1003,10 +1003,12 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                             getNextToken();
                             return make_unique<UnaryExpAST>(name, move(t));
                         }
+                            break;
                         case RPARENT: {
                             getNextToken();
                             return make_unique<UnaryExpAST>(name, nullptr);
                         }
+                            break;
                     }
                 }
                     break;
