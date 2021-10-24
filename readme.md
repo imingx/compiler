@@ -49,7 +49,7 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 ## 参考
 
 1. [`unique_ptr`][unique_ptr], [`shared_ptr`][share_ptr]
-2. [tryC - a small interpreter written by C][tryC - a small interpreter written by C]
+2. [TryC - a small interpreter written by C][tryC - a small interpreter written by C]
 3. [My First Language Frontend with LLVM Tutorial][My First Language Frontend with LLVM Tutorial]
 
 
