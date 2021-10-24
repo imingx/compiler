@@ -92,12 +92,13 @@ void Parser::handleCompUnit() {
 }
 
 shared_ptr<FuncTypeAST> Parser::parseFuncType() {
-    if (CurTok != VOIDTK && CurTok != INTTK) {
+    int type = CurTok;
+    if (type != VOIDTK && type != INTTK) {
         fprintf(stderr, "parseFuncType error!\n");
         exit(-1);
     }
     getNextToken();
-    return make_shared<FuncTypeAST>(CurTok, identifierStr);
+    return make_shared<FuncTypeAST>(type, identifierStr);
 }
 
 shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
@@ -151,7 +152,7 @@ shared_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
     vector<shared_ptr<FuncFParamAST>> funcFParams;
 
     if (CurTok != INTTK) {
-        fprintf(stderr, "parseFuncFParams error!\n");
+        fprintf(stderr, "parseFuncFParams error!1\n");
         exit(-1);
     }
     auto t = parseFuncFParam();
@@ -163,7 +164,7 @@ shared_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
     while (CurTok == COMMA) {
         getNextToken();
         if (CurTok != INTTK) {
-            fprintf(stderr, "parseFuncFparams error!\n");
+            fprintf(stderr, "parseFuncFparams error!2\n");
             exit(-1);
         }
         auto t = parseFuncFParam();
@@ -180,7 +181,7 @@ shared_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
 shared_ptr<FuncDefAST> Parser::parseFuncDef() {
     shared_ptr<FuncTypeAST> funcType;
     string name;
-    shared_ptr<FuncFParamsAST> funcFParams;
+    shared_ptr<FuncFParamsAST> funcFParams = nullptr;
     shared_ptr<BlockAST> block;
 
     if (CurTok != VOIDTK && CurTok != INTTK) {
@@ -204,7 +205,8 @@ shared_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-3);
     }
     getNextToken();
-    if (CurTok != RPARENT) {
+
+    if (CurTok == INTTK) {
         funcFParams = parseFuncFParams();
 #ifdef ParserPrint
         fprintf(out, "<FuncFParams>\n");
@@ -669,7 +671,6 @@ shared_ptr<StmtAST> Parser::parseStmt() {
 //                PreviewNextToken();
 //            }
 
-            cout << "flag is " << flag << endl;
             if (flag) {
                 //有=
 //                cout << "now is " << tokenName[CurTok] << endl;
@@ -987,7 +988,7 @@ shared_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             fprintf(out, "<Number>\n");
             cout << "<Number>" << endl;
 #endif
-            return make_shared<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t), 3);
         }
         case LPARENT: {
             getNextToken();
@@ -1001,7 +1002,7 @@ shared_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
                 printf("%d j, )缺失-----------------\n", getLastTokenLine());
             } else
                 getNextToken();
-            return make_shared<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t), 1);
         }
             break;
         case IDENFR: {
@@ -1010,7 +1011,7 @@ shared_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             fprintf(out, "<LVal>\n");
             cout << "<LVal>" << endl;
 #endif
-            return make_shared<PrimaryExpAST>(move(t));
+            return make_shared<PrimaryExpAST>(move(t), 2);
         }
             break;
         default:
@@ -1421,6 +1422,7 @@ shared_ptr<InitValAST> Parser::parseInitVal() {
             getNextToken();
             switch (CurTok) {
                 case RBRACE:
+                    getNextToken();
                     return make_shared<InitValAST>(move(initVals));
                 case PLUS:
                 case MINU:

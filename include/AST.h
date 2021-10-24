@@ -261,8 +261,10 @@ public:
 class PrimaryExpAST : public AST {
 public:
     shared_ptr<AST> item;
+    int type;
+    // 1 is exp , 2 is lval, 3 is number;
 public:
-    PrimaryExpAST(shared_ptr<AST> item) : item(move(item)) {}
+    PrimaryExpAST(shared_ptr<AST> item, const int type) : item(move(item)), type(type) {}
 };
 
 class LValAST : public AST {
@@ -418,13 +420,12 @@ public:
 
 class MainFuncDefAST : public AST {
 public:
-    string funcType;
     int type;
     string name;
     shared_ptr<BlockAST> block;
     int line;
 public:
-    MainFuncDefAST(shared_ptr<BlockAST> block, const int line) : block(move(block)), name("main"), funcType("int"),
+    MainFuncDefAST(shared_ptr<BlockAST> block, const int line) : block(move(block)), name("main"),
                                                                  type(INTTK), line(line) {}
 };
 
