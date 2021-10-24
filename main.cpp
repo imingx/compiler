@@ -8,23 +8,25 @@ using namespace std;
 
     set(CMAKE_CXX_STANDARD 11)
 
-    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h AST.cpp include/AST.h SymbolTable.cpp include/SymbolTable.h include/TYPE.h ErrorHandle.cpp include/ErrorHandle.h)
+    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h AST.cpp include/AST.h SymbolTable.cpp include/SymbolTable.h include/TYPE.h ErrorHandler.cpp include/ErrorHandler.h)
  */
 
 int main() {
-    //Lexer和Parser的输出控制在TYPE.h
+    //Lexer & Parser的输出控制在TYPE.h
 
     // lexer
     Lexer lexer(FILE_IN, FILE_OUT);
     lexer.program();
 
     // parser
-    ErrorHandle errorHandle(ERROR);
-
     Parser parser(FILE_OUT);
     parser.program();
+    unique_ptr<CompUnitAST> &AST = parser.getAST();
 
-//    unique_ptr<CompUnitAST> AST = parser.getAST();
+    // error handling
+    ErrorHandler errorHandler(ERROR, AST);
+    errorHandler.program();
+    errorHandler.print();
 
     return 0;
 }

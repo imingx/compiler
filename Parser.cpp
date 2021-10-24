@@ -4,18 +4,37 @@
 
 #include "include/Parser.h"
 
-map<int, int> BinopPrecedence;//优先级
-ErrorHandle errorHandle();
-
 void Parser::syncTokIndex() {
-    PreviewIndex = index;
+    PreviewIndex = index - 1;
+    if (PreviewIndex < words.size()) {
+        PreviewTok = words[PreviewIndex++].category;
+    } else {
+        PreviewTok = EOF;
+    }
+}
+
+int Parser::getCurTokenLine() {
+    if (index > 0) {
+        return words[index - 1].line;
+    }
+    return 1;
 }
 
 int Parser::getLastTokenLine() {
-    if (index > 1 ) {
+    if (index > 1) {
         return words[index - 2].line;
     }
     return 1;
+}
+
+void Parser::setIndex(int ind) {
+    this->index = ind - 1;
+    if (index < words.size()) {
+        identifierStr = words[index].raw;
+        CurTok = words[index++].category;
+    } else {
+        CurTok = EOF;
+    }
 }
 
 int Parser::getNextToken() {
@@ -48,36 +67,6 @@ int Parser::PreviewNextToken() {
     }
 }
 
-void Parser::initBinopPrecedence() {
-
-    BinopPrecedence[LPARENT] = 45; //(
-    BinopPrecedence[RPARENT] = 45; //)
-    BinopPrecedence[LBRACK] = 45; // [
-    BinopPrecedence[RBRACK] = 45; // ]
-
-    BinopPrecedence[NOT] = 40; // !
-
-    BinopPrecedence[MULT] = 35; // *
-    BinopPrecedence[DIV] = 35; // /
-    BinopPrecedence[MOD] = 35; // %
-
-    BinopPrecedence[PLUS] = 30; // +
-    BinopPrecedence[MINU] = 30; // -
-
-    BinopPrecedence[LSS] = 25; // <
-    BinopPrecedence[LEQ] = 25; // <=
-    BinopPrecedence[GRE] = 25; // >
-    BinopPrecedence[GEQ] = 25; // >=
-
-    BinopPrecedence[EQL] = 20; // ==
-    BinopPrecedence[NEQ] = 20; // !=
-
-    BinopPrecedence[AND] = 15; // &&
-    BinopPrecedence[OR] = 10;  // ||
-    BinopPrecedence[ASSIGN] = 5; // =
-    BinopPrecedence[COMMA] = 1; // ,
-}
-
 void Parser::program() {
     getNextToken();
     handleCompUnit();
@@ -87,7 +76,6 @@ Parser::Parser(const char *FILE_OUT) {
     this->out = fopen(FILE_OUT, "w");
     this->index = 0;
     this->nowLevel = 0;
-    this->initBinopPrecedence();
 }
 
 Parser::~Parser() {
@@ -95,7 +83,7 @@ Parser::~Parser() {
 }
 
 void Parser::handleCompUnit() {
-    if (parseCompUnit()) {
+    if ((AST = parseCompUnit())) {
 #ifdef ParserPrint
         fprintf(out, "<CompUnit>\n");
         cout << "<CompUnit>" << endl;
@@ -128,15 +116,16 @@ unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
         exit(-1);
     }
     name = identifierStr;
+    int identLine = getCurTokenLine();
     getNextToken();
     if (CurTok == LBRACK) {
         getNextToken();
-        if (CurTok != RBRACK) {
-            fprintf(stderr, "error!\n");
-            exit(-1);
-        }
+        if (CurTok != RBRACK) { // ]
+            errors.push_back({getLastTokenLine(), "k"});
+            printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+        } else
+            getNextToken();
         constExps.push_back(nullptr);
-        getNextToken();
         while (CurTok == LBRACK) {
             getNextToken();
             auto t = parseConstExp();
@@ -145,15 +134,15 @@ unique_ptr<FuncFParamAST> Parser::parseFuncFParam() {
             cout << "<ConstExp>" << endl;
 #endif
             constExps.push_back(move(t));
-            if (CurTok != RBRACK) {
-                fprintf(stderr, "error!\n");
-                exit(-1);
-            }
-            getNextToken();
+            if (CurTok != RBRACK) { // ]
+                errors.push_back({getLastTokenLine(), "k"});
+                printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+            } else
+                getNextToken();
         }
-        return make_unique<FuncFParamAST>(move(bType), name, move(constExps));
+        return make_unique<FuncFParamAST>(move(bType), name, move(constExps), identLine);
     } else {
-        return make_unique<FuncFParamAST>(move(bType), name, move(constExps));
+        return make_unique<FuncFParamAST>(move(bType), name, move(constExps), identLine);
     }
     return nullptr;
 }
@@ -208,6 +197,7 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-2);
     }
     name = identifierStr;
+    int identLine = getCurTokenLine();
     getNextToken();
     if (CurTok != LPARENT) {
         fprintf(stderr, "parseFuncDef error3\n");
@@ -221,10 +211,11 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
         cout << "<FuncFParams>" << endl;
 #endif
     }
-    if (CurTok != RPARENT) {
-        // get )
-    }
-    getNextToken(); // get {
+    if (CurTok != RPARENT) { // )
+        errors.push_back({getLastTokenLine(), "j"});
+        printf("%d j, )缺失-----------------\n", getLastTokenLine());
+    } else
+        getNextToken(); // get {
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseFuncDef error4\n");
         exit(-4);
@@ -234,7 +225,7 @@ unique_ptr<FuncDefAST> Parser::parseFuncDef() {
     fprintf(out, "<Block>\n");
     cout << "<Block>" << endl;
 #endif
-    return make_unique<FuncDefAST>(move(funcType), name, move(funcFParams), move(block));
+    return make_unique<FuncDefAST>(move(funcType), name, move(funcFParams), move(block), identLine);
 }
 
 
@@ -458,6 +449,7 @@ unique_ptr<StmtAST> Parser::parseStmt() {
 
     switch (CurTok) {
         case PRINTFTK: {
+            int printfLine = getCurTokenLine();
             getNextToken();
             if (CurTok != LPARENT) {
                 fprintf(stderr, "parseStmt error!\n");
@@ -469,8 +461,40 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 exit(-1);
             }
             formatString = identifierStr;
-            getNextToken();
+            for (int i = 0; i < formatString.size(); ++i) {
+                if (i == 0 || i == formatString.size() - 1)
+                    continue;
+                if (formatString[i] == '%') {
+                    if (formatString[i + 1] == 'd') {
+                        ++i;
+                        continue;
+                    } else {
+                        errors.push_back({getCurTokenLine(), "a"});
+                        printf("%d a, 非法字符---------\n", getCurTokenLine());
+                        break;
+                    }
+                }
+                if (formatString[i] == '\\') {
+                    if (formatString[i + 1] == 'n') {
+                        ++ i;
+                        continue;
+                    } else {
+                        errors.push_back({getCurTokenLine(), "a"});
+                        printf("%d a, 非法字符---------\n", getCurTokenLine());
+                        break;
+                    }
+                }
+                if (formatString[i] == 32 || formatString[i] == 33 ||
+                    (formatString[i] >= 40 && formatString[i] <= 126)) {
+                    continue;
+                } else {
+                    errors.push_back({getCurTokenLine(), "a"});
+                    printf("%d a, 非法字符---------\n", getCurTokenLine());
+                    break;
+                }
+            }
 
+            getNextToken();
             while (CurTok == COMMA) {
                 getNextToken();
                 auto t = parseExp();
@@ -480,35 +504,51 @@ unique_ptr<StmtAST> Parser::parseStmt() {
 #endif
                 expsPrintf.push_back(move(t));
             }
-            if (CurTok == RPARENT) {
+            if (CurTok != RPARENT) { // )
+                errors.push_back({getLastTokenLine(), "j"});
+                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+            } else
                 getNextToken(); //get ;
+            if (CurTok != SEMICN) {
+                errors.push_back({getLastTokenLine(), "i"});
+                printf("%d i, 分号缺失--------------\n", getLastTokenLine());
+            } else
                 getNextToken(); //get next
-                return make_unique<StmtAST>(formatString, move(expsPrintf));
-            }
+            return make_unique<StmtAST>(formatString, move(expsPrintf), printfLine);
         }
             break;
         case RETURNTK: {
+            int returnLine = getCurTokenLine();
             getNextToken();
             if (CurTok == SEMICN) {
                 getNextToken();
-                return make_unique<StmtAST>(move(expReturn), "RETURN");
+                return make_unique<StmtAST>(move(expReturn), "RETURN", returnLine);
             } else {
                 expReturn = parseExp();
 #ifdef ParserPrint
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                getNextToken();
-                return make_unique<StmtAST>(move(expReturn), "RETURN");
+                if (CurTok != SEMICN) {
+                    errors.push_back({getLastTokenLine(), "i"});
+                    printf("%d i, 分号缺失--------------\n", getLastTokenLine());
+                } else
+                    getNextToken();
+                return make_unique<StmtAST>(move(expReturn), "RETURN", returnLine);
             }
         }
             break;
         case BREAKTK:
         case CONTINUETK: {
+            int bcLine = getCurTokenLine();
             category = CurTok;
             getNextToken(); //get ;
-            getNextToken(); //get next
-            return make_unique<StmtAST>(category);
+            if (CurTok != SEMICN) {
+                errors.push_back({getLastTokenLine(), "i"});
+                printf("%d i, 分号缺失----------------\n", getLastTokenLine());
+            } else
+                getNextToken(); //get next
+            return make_unique<StmtAST>(category, bcLine);
         }
             break;
         case WHILETK: {
@@ -520,7 +560,11 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             cout << "<Cond>" << endl;
 #endif
             // now we get )
-            getNextToken();
+            if (CurTok != RPARENT) { // )
+                errors.push_back({getLastTokenLine(), "j"});
+                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+            } else
+                getNextToken();
             stmtWhile = parseStmt();
 #ifdef ParserPrint
             fprintf(out, "<Stmt>\n");
@@ -537,7 +581,11 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             fprintf(out, "<Cond>\n");
             cout << "<Cond>" << endl;
 #endif
-            getNextToken();
+            if (CurTok != RPARENT) { // )
+                errors.push_back({getLastTokenLine(), "j"});
+                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+            } else
+                getNextToken();
             stmtIf = parseStmt();
 #ifdef ParserPrint
             fprintf(out, "<Stmt>\n");
@@ -577,32 +625,61 @@ unique_ptr<StmtAST> Parser::parseStmt() {
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
-            getNextToken(); //get next
+            if (CurTok != SEMICN) {
+                errors.push_back({getLastTokenLine(), "i"});
+                printf("%d i, 分号缺失---------------\n", getLastTokenLine());
+            } else
+                getNextToken(); //get next
             return make_unique<StmtAST>(move(expSingle));
         }
             break;
         case IDENFR: {
+            int identLine = getCurTokenLine();
             PreviewNextToken();
-            if (PreviewTok == LPARENT) {
+            if (PreviewTok == LPARENT) { // 下面是函数 func();
                 expSingle = parseExp(); //get ;
 #ifdef ParserPrint
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                getNextToken(); //get next;
+                if (CurTok != SEMICN) {
+                    errors.push_back({getLastTokenLine(), "i"});
+                    printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
+                } else
+                    getNextToken(); //get next;
                 return make_unique<StmtAST>(move(expSingle));
             }
             bool flag = false;
-            while (PreviewTok != SEMICN) {
-                if (PreviewTok == ASSIGN) {
-                    flag = true;
-                    break;
-                }
-                PreviewNextToken();
+            int ind = this->index;
+            syncTokIndex();
+            parseLVal();
+            if (CurTok == ASSIGN) {
+                flag = true;
             }
+            syncTokIndex();
+//            cout << "now is " << tokenName[CurTok] << endl;
+//            cout << "now is " << tokenName[PreviewTok] << endl;
+//            cout << PreviewIndex;
+            setIndex(ind);
+//            while (PreviewTok != SEMICN) {
+//                if (PreviewTok == ASSIGN) {
+//                    flag = true;
+//                    break;
+//                }
+//                PreviewNextToken();
+//            }
+
+            cout << "flag is " << flag << endl;
             if (flag) {
                 //有=
+//                cout << "now is " << tokenName[CurTok] << endl;
+//                cout << "now is " << tokenName[PreviewTok] << endl;
+//                cout << PreviewIndex;
                 PreviewNextToken();
+//                cout << "now is " << tokenName[CurTok] << endl;
+//                cout << "now is " << tokenName[PreviewTok] << endl;
+//                cout << PreviewIndex;
+
                 if (PreviewTok == GETINTTK) {
                     lValGetint = parseLVal(); // =
 #ifdef ParserPrint
@@ -612,9 +689,17 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     getNextToken();   // getint
                     getNextToken();   // (
                     getNextToken(); // )
-                    getNextToken(); //;
-                    getNextToken();  //next
-                    return make_unique<StmtAST>(move(lValGetint));
+                    if (CurTok != RPARENT) { // )
+                        errors.push_back({getLastTokenLine(), "j"});
+                        printf("%d j, )缺失-----------------\n", getLastTokenLine());
+                    } else
+                        getNextToken(); //;
+                    if (CurTok != SEMICN) {
+                        errors.push_back({getLastTokenLine(), "i"});
+                        printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
+                    } else
+                        getNextToken();  //next
+                    return make_unique<StmtAST>(move(lValGetint), identLine);
                 } else {
                     lVal = parseLVal(); // =
 #ifdef ParserPrint
@@ -627,8 +712,12 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                     fprintf(out, "<Exp>\n");
                     cout << "<Exp>" << endl;
 #endif
-                    getNextToken(); //nexxt
-                    return make_unique<StmtAST>(move(lVal), move(exp));
+                    if (CurTok != SEMICN) {
+                        errors.push_back({getLastTokenLine(), "i"});
+                        printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
+                    } else
+                        getNextToken(); //next
+                    return make_unique<StmtAST>(move(lVal), move(exp), identLine);
                 }
             } else {
                 //没有=
@@ -637,7 +726,11 @@ unique_ptr<StmtAST> Parser::parseStmt() {
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                getNextToken(); //get next;
+                if (CurTok != SEMICN) {
+                    errors.push_back({getLastTokenLine(), "i"});
+                    printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
+                } else
+                    getNextToken(); //get next;
                 return make_unique<StmtAST>(move(expSingle));
             }
 
@@ -652,7 +745,7 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
         case CONSTTK:
         case INTTK: {
             auto t = parseDecl();
-            return make_unique<BlockItemAST>(move(t));
+            return make_unique<BlockItemAST>(move(t), 0);
         }
             break;
         case IDENFR:
@@ -675,7 +768,7 @@ unique_ptr<BlockItemAST> Parser::parseBlockItem() {
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
-            return make_unique<BlockItemAST>(move(t));
+            return make_unique<BlockItemAST>(move(t), 1);
         }
             break;
         default: {
@@ -695,8 +788,9 @@ unique_ptr<BlockAST> Parser::parseBlock() {
     }
     getNextToken();
     if (CurTok == RBRACE) {
+        int rbraceLine = getCurTokenLine();
         getNextToken();
-        return make_unique<BlockAST>(move(blockItems));
+        return make_unique<BlockAST>(move(blockItems), rbraceLine);
     }
 
     while (true) {
@@ -735,8 +829,9 @@ unique_ptr<BlockAST> Parser::parseBlock() {
             break;
         }
     }
+    int rbraceLine = getCurTokenLine();
     getNextToken();
-    return make_unique<BlockAST>(move(blockItems));
+    return make_unique<BlockAST>(move(blockItems), rbraceLine);
 }
 
 unique_ptr<MainFuncDefAST> Parser::parseMainDef() {
@@ -755,11 +850,11 @@ unique_ptr<MainFuncDefAST> Parser::parseMainDef() {
         exit(-1);
     }
     getNextToken();
-    if (CurTok != RPARENT) {
-        fprintf(stderr, "parseMainDef wrong!\n");
-        exit(-1);
-    }
-    getNextToken();
+    if (CurTok != RPARENT) { // )
+        errors.push_back({getLastTokenLine(), "j"});
+        printf("%d j, )缺失-----------------\n", getLastTokenLine());
+    } else
+        getNextToken();
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseMainDef wrong!\n");
         exit(-1);
@@ -855,6 +950,7 @@ unique_ptr<LValAST> Parser::parseLVal() {
     }
     vector<unique_ptr<ExpAST>> exps;
     string name = identifierStr;
+    int identLine = getCurTokenLine();
     getNextToken();
     while (CurTok == LBRACK) {
         getNextToken();
@@ -870,16 +966,16 @@ unique_ptr<LValAST> Parser::parseLVal() {
                 cout << "<Exp>" << endl;
 #endif
                 exps.push_back(move(t));
-                if (CurTok != RBRACK) {
-                    fprintf(stderr, "parseLVal error!\n");
-                    exit(-1);
-                }
-                getNextToken();
+                if (CurTok != RBRACK) { // ]
+                    errors.push_back({getLastTokenLine(), "k"});
+                    printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+                } else
+                    getNextToken();
             }
                 break;
         }
     }
-    return make_unique<LValAST>(name, move(exps));
+    return make_unique<LValAST>(name, move(exps), identLine);
 }
 
 unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
@@ -899,11 +995,11 @@ unique_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
-            if (CurTok != RPARENT) {
-                fprintf(stderr, "parsePrimaryExp error!\n");
-                exit(-1);
-            }
-            getNextToken();
+            if (CurTok != RPARENT) { // )
+                errors.push_back({getLastTokenLine(), "j"});
+                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+            } else
+                getNextToken();
             return make_unique<PrimaryExpAST>(move(t));
         }
             break;
@@ -1017,12 +1113,9 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             switch (PreviewTok) {
                 case LPARENT: {
                     string name = identifierStr;
-                    getNextToken();
-                    if (CurTok != LPARENT) {
-                        fprintf(stderr, "parseUnaryExp wrong!1");
-                        exit(-1);
-                    }
-                    getNextToken();
+                    int identLine = getCurTokenLine();
+                    getNextToken(); //get (
+                    getNextToken(); //get FuncRParams
                     switch (CurTok) {
                         case PLUS:
                         case MINU:
@@ -1034,17 +1127,27 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                             fprintf(out, "<FuncRParams>\n");
                             cout << "<FuncRParams>" << endl;
 #endif
-                            if (CurTok != RPARENT) {
-                                fprintf(stderr, "parseUnaryExp wrong!2");
-                                exit(-1);
-                            }
-                            getNextToken();
-                            return make_unique<UnaryExpAST>(name, move(t));
+                            if (CurTok != RPARENT) { // )
+                                errors.push_back({getLastTokenLine(), "j"});
+                                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+                            } else
+                                getNextToken();
+                            return make_unique<UnaryExpAST>(name, move(t), identLine);
                         }
+                            break;
                         case RPARENT: {
                             getNextToken();
-                            return make_unique<UnaryExpAST>(name, nullptr);
+                            return make_unique<UnaryExpAST>(name, nullptr, identLine);
                         }
+                            break;
+                        default: {
+                            if (CurTok != RPARENT) { // )
+                                errors.push_back({getLastTokenLine(), "j"});
+                                printf("%d j, )缺失-----------------\n", getLastTokenLine());
+                            }
+                            return make_unique<UnaryExpAST>(name, nullptr, identLine);
+                        }
+                            break;
                     }
                 }
                     break;
@@ -1072,6 +1175,7 @@ unique_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             exit(-1);
         }
     }
+
     return nullptr;
 }
 
@@ -1206,6 +1310,7 @@ unique_ptr<ConstDefAST> Parser::parseConstDef() {
     if (CurTok != IDENFR)
         exit(-1);
     name = identifierStr;
+    int identLine = getCurTokenLine();
     getNextToken();
     while (true) {
         if (CurTok == ASSIGN) {
@@ -1216,7 +1321,7 @@ unique_ptr<ConstDefAST> Parser::parseConstDef() {
             cout << "<ConstInitVal>" << endl;
 #endif
             break;
-        } else if (CurTok == LBRACK) {
+        } else if (CurTok == LBRACK) { //[
             getNextToken();
             auto t = parseConstExp();
 #ifdef ParserPrint
@@ -1224,15 +1329,18 @@ unique_ptr<ConstDefAST> Parser::parseConstDef() {
             cout << "<ConstExp>" << endl;
 #endif
             constExps.push_back(move(t));
-            if (CurTok != RBRACK)
-                exit(-2);
-            getNextToken();
+
+            if (CurTok != RBRACK) { // ]
+                errors.push_back({getLastTokenLine(), "k"});
+                printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+            } else
+                getNextToken();
         } else {
             exit(-1);
         }
     }
 
-    return make_unique<ConstDefAST>(name, move(constExps), move(constInitVal));
+    return make_unique<ConstDefAST>(name, move(constExps), move(constInitVal), identLine);
 }
 
 unique_ptr<BTypeAST> Parser::parseBType() {
@@ -1282,12 +1390,12 @@ unique_ptr<ConstDeclAST> Parser::parseConstDecl() {
 #endif
         constDefs.push_back(move(t));
     }
+
     if (CurTok != SEMICN) {
-        // i, 缺少分号
-        fprintf(stderr, "error\n");
-        exit(-4);
-    }
-    getNextToken();
+        errors.push_back({getLastTokenLine(), "i"});
+        printf("%d i, 分号缺失---------------\n", getLastTokenLine());
+    } else
+        getNextToken();
     return make_unique<ConstDeclAST>(symbol, move(btype), move(constDefs));
 }
 
@@ -1362,6 +1470,7 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
         exit(-1);
     }
     name = identifierStr;
+    int identLine = getCurTokenLine();
     getNextToken();
     while (CurTok == LBRACK) {
         getNextToken();
@@ -1371,11 +1480,11 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
         cout << "<ConstExp>" << endl;
 #endif
         constExps.push_back(move(t));
-        if (CurTok != RBRACK) {
-            fprintf(stderr, "parseVarDef error2\n");
-            exit(-1);
-        }
-        getNextToken();
+        if (CurTok != RBRACK) { // ]
+            errors.push_back({getLastTokenLine(), "k"});
+            printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+        } else
+            getNextToken();
     }
 
     if (CurTok == ASSIGN) {
@@ -1385,9 +1494,9 @@ unique_ptr<VarDefAST> Parser::parseVarDef() {
         fprintf(out, "<InitVal>\n");
         cout << "<InitVal>" << endl;
 #endif
-        return make_unique<VarDefAST>(name, move(constExps), move(initVal));
+        return make_unique<VarDefAST>(name, move(constExps), move(initVal), identLine);
     } else {
-        return make_unique<VarDefAST>(name, move(constExps), nullptr);
+        return make_unique<VarDefAST>(name, move(constExps), nullptr, identLine);
     }
     return nullptr;
 }
@@ -1419,10 +1528,10 @@ unique_ptr<VarDeclAST> Parser::parseVarDecl() {
     }
 
     if (CurTok != SEMICN) {
-        fprintf(stderr, "parseVarDecl error!\n");
-        exit(-1);
-    }
-    getNextToken();
+        errors.push_back({getLastTokenLine(), "i"});
+        printf("%d i, 分号缺失---------------\n", getLastTokenLine());
+    } else
+        getNextToken();
     return make_unique<VarDeclAST>(move(btype), move(varDefs));
 }
 
@@ -1434,7 +1543,7 @@ unique_ptr<DeclAST> Parser::parseDecl() {
             fprintf(out, "<ConstDecl>\n");
             cout << "<ConstDecl>" << endl;
 #endif
-            return make_unique<DeclAST>(move(t));
+            return make_unique<DeclAST>(move(t), 1);
         }
             break;
         case INTTK: {
@@ -1443,7 +1552,7 @@ unique_ptr<DeclAST> Parser::parseDecl() {
             fprintf(out, "<VarDecl>\n");
             cout << "<VarDecl>" << endl;
 #endif
-            return make_unique<DeclAST>(move(t));
+            return make_unique<DeclAST>(move(t), 0);
         }
             break;
         default:
@@ -1529,6 +1638,6 @@ unique_ptr<CompUnitAST> Parser::parseCompUnit() {
     return make_unique<CompUnitAST>(move(decls), move(funcs), move(main));
 }
 
-unique_ptr<CompUnitAST> Parser::getAST() {
-    return move(AST);
+unique_ptr<CompUnitAST>& Parser::getAST() {
+    return AST;
 }

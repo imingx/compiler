@@ -8,14 +8,9 @@
 #include "Lexer.h"
 #include "AST.h"
 #include "TYPE.h"
-#include "ErrorHandle.h"
+#include "ErrorHandler.h"
 
-extern map<int, int> BinopPrecedence;//优先级
 
-template<typename T, typename... Ts>
-std::unique_ptr<T> make_unique(Ts &&... params) {
-    return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
-}
 
 class Parser {
 private:
@@ -29,10 +24,12 @@ private:
     unique_ptr<CompUnitAST> AST;
 
     int getLastTokenLine();
-    void initBinopPrecedence();
+    int getCurTokenLine();
 
 public:
-    unique_ptr<CompUnitAST> getAST();
+    unique_ptr<CompUnitAST> &getAST();
+
+    void setIndex(int ind);
 
     int PreviewNextToken();
 

@@ -116,7 +116,7 @@ int Lexer::getNext(Word &w) {
     }
 #ifdef LexerPrint
     cout << tokenName[word.category] << " " << word.raw << " " << word.line << endl;
-//    fprintf(out, "%s %s\n", tokenName[word.category], word.raw.c_str());
+//    fprintf(error, "%s %s\n", tokenName[word.category], word.raw.c_str());
 #endif
     words.push_back(word);
     w = word;
@@ -212,7 +212,7 @@ void Lexer::program() {
         word.line = line;
         word.raw = str;
 //        cout << tokenName[word.category] << " " << str << endl;
-//        fprintf(out, "%s %s\n", tokenName[word.category], str.c_str());
+//        fprintf(error, "%s %s\n", tokenName[word.category], str.c_str());
         words.push_back(word);
     }
      */

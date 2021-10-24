@@ -9,7 +9,7 @@
 # include "Parser.h"
 # include "AST.h"
 # include "TYPE.h"
-# include "ErrorHandle.h"
+# include "ErrorHandler.h"
 
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";

@@ -14,8 +14,15 @@ using namespace std;
 #endif
 
 #ifndef ParserPrint
-#define ParserPrint   //控制02语法分析输出
+//#define ParserPrint   //控制02语法分析输出
 #endif
+
+typedef pair<int, string> PIS;
+
+template<typename T, typename... Ts>
+std::unique_ptr<T> make_unique(Ts &&... params) {
+    return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
+}
 
 //rule name
 enum RULE_CATEGORY {
