@@ -337,16 +337,16 @@ int ErrorHandler::handleLVal(shared_ptr<LValAST> &lVal, bool &ans) {
 //            break;
 //        }
 //    }
-        if (flag) {
-            if (isCon) {
-                ans = true;
-            } else {
-                ans = false;
-            }
+    if (flag) {
+        if (isCon) {
+            ans = true;
         } else {
-            errors.push_back({line, "c"});
-            printf("%d c, 未定义名字-------\n", line);
+            ans = false;
         }
+    } else {
+        errors.push_back({line, "c"});
+        printf("%d c, 未定义名字-------\n", line);
+    }
 
     int originDim = 0;
     int lValDim = lVal->exps.size();
@@ -537,16 +537,18 @@ void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
     int parameterNum = 0;
     if (funcFParams != nullptr) {
         parameterNum = funcFParams->funcFParams.size();
-
         for (int i = 0; i < parameterNum; ++i) {
             handleFuncFParam(funcFParams->funcFParams[i], parameters);
         }
     }
-    shared_ptr<BlockAST> &block = funcDef->block;
-    handleBLock(block, true);
+
 
     FuncSym t(funcName, parameterNum, parameters, CurType.top());
     symbolTable.Func.push_back(t);
+
+    shared_ptr<BlockAST> &block = funcDef->block;
+    handleBLock(block, true);
+
     CurType.pop();
     isloop.pop();
     CurLevel--;
