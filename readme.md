@@ -48,7 +48,7 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 
 ## 参考
 
-1. [shared_ptr][shared_ptr]
+1. [`unique_ptr`][unique_ptr], [`shared_ptr`][share_ptr]
 2. [tryC - a small interpreter written by C][tryC - a small interpreter written by C]
 3. [My First Language Frontend with LLVM Tutorial][My First Language Frontend with LLVM Tutorial]
 
@@ -56,7 +56,7 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 
 
 
-
+[share_ptr]: http://www.cplusplus.com/reference/memory/shared_ptr/ "share_ptr"
 [00_文法解读]: https://github.com/imingx/Compiler/tree/00_%E6%96%87%E6%B3%95%E8%A7%A3%E8%AF%BB "00_文法解读"
 [01_词法分析]: https://github.com/imingx/Compiler/tree/01_Lexer	"01_词法分析"
 [02_语法分析]: https://github.com/imingx/Compiler/tree/02_Parser  "02_语法分析"
@@ -64,6 +64,6 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 [语法分析测试用例]: https://github.com/imingx/Compiler/tree/02_Parser_testFile "语法分析测试用例"
 [03_错误处理]: https://github.com/imingx/Compiler/tree/03_ErrorHandler "03_错误处理"
 [错误处理测试用例]: https://github.com/imingx/Compiler/tree/03_ErrorHandler_testFile "错误处理测试用例"
-[shared_ptr]: https://blog.csdn.net/shaosunrise/article/details/85158249 "shared_ptr"
+[unique_ptr]: https://blog.csdn.net/shaosunrise/article/details/85158249 "unique_ptr"
 [My First Language Frontend with LLVM Tutorial]: https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/index.html "My First Language Frontend with LLVM Tutorial"
 [tryC - a small interpreter written by C]: https://github.com/imingx/tryC "tryC - a small interpreter written by C"
