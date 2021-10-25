@@ -1,4 +1,234 @@
-## 一、课程要求
+# 一、错误处理设计文档
+
+## 1. 需求分析
+
+请根据给定的文法设计并实现错误处理程序，能诊察出常见的语法和语义错误，进行错误局部化处理，并输出错误信息。
+
+要求：
+
+1. 输出错误行号和错误的类别码。
+2. 识别语法和语义错误
+
+## 2. 编码前的设计
+
+- 语法错误，比如`;`,`]`和`)`缺失，以及`FormatString`内的非法符号，直接在语法分析内处理。而语义错误，需要再次遍历AST树，然后处理。
+- 在遍历AST树时，处理错误所必要的是，建立符号表。
+
+## 3. 模块设计
+
+**文件结构：**
+
+```
+.
+├── AST.cpp
+├── ErrorHandler.cpp
+├── Lexer.cpp
+├── Parser.cpp
+├── SymbolTable.cpp
+├── include
+│   ├── AST.h
+│   ├── ErrorHandler.h
+│   ├── Lexer.h
+│   ├── Parser.h
+│   ├── SymbolTable.h
+│   ├── TYPE.h
+│   └── main.h
+└── main.cpp
+```
+
+### 3.1 TYPE.h
+
+```c++
+#ifndef LexerPrint
+//#define LexerPrint      //控制01词法分析输出
+#endif
+
+#ifndef ParserPrint
+//#define ParserPrint   //控制02语法分析输出
+#endif
+
+Parser.cpp:
+#ifdef ParserPrint
+            fprintf(out, "<ConstExp>\n");
+            cout << "<ConstExp>" << endl;
+#endif
+
+Lexer.cpp:
+#ifdef LexerPrint
+    cout << tokenName[word.category] << " " << word.raw << " " << word.line << endl;
+    fprintf(error, "%s %s\n", tokenName[word.category], word.raw.c_str());
+#endif
+```
+
+在`TYPE.h`中，增加对词法分析和语法分析输出的控制，统一操作。
+
+### 3.2 符号表设计
+
+```c++
+class Sym {
+public:
+    string name; //名字
+    int type; //变量的类型，或函数的返回值类型
+    bool isCon; // 0 is var, 1 is con;
+    Sym(const string &name, const int type, const bool isCon) : name(name), isCon(isCon), type(type) {}
+};
+
+class VarSym : public Sym {
+public:
+    int level;   // 作用域
+    int dimension;
+};
+
+class ConSym : public Sym {
+public:
+    int level;   // 作用域
+    int dimension; //数组的维度，
+};
+
+
+class FuncSym : public Sym {
+public:
+    vector<VarSym> parameters;
+    int parameterNum;
+};
+
+
+class SymbolTable {
+public:
+    vector<ConSym> Con;
+    vector<VarSym> Var;
+    vector<FuncSym> Func;
+};
+```
+
+符号表记录了函数、常量、变量三类。函数`FuncSym`类是记录了函数的名字、返回值、参数个数、参数变量信息。常量和变量类都记录了名字、类型、作用域、数组维度（不是数组，记为0）。在处理符号表时，每进入一个块，作用域层次加一，在退出该块时，会将该作用域的变量常量全部删除，作用域层次减一。
+
+### 3.3 错误处理类设计
+
+```c++
+class ErrorHandler {
+    private:
+    int CurLevel;
+    stack<int> CurType; //voidtk, inttk
+    string CurFunc; //目前所处的函数
+    int returnType;
+    stack<bool> isloop;
+    shared_ptr<CompUnitAST> &compUnitAst;
+    FILE *error;
+    
+    public:
+    ErrorHandler(const char *ERROR, shared_ptr<CompUnitAST> &compUnitAst);
+    ~ErrorHandler();
+    void program();
+    void print();
+    //下面是handle每一个文法的函数
+    void handleDecl(shared_ptr<DeclAST> &decl);
+    void handleConstDecl(shared_ptr<ConstDeclAST> &constDecl);
+    void handleVarDecl(shared_ptr<VarDeclAST> &varDecl);
+    void handleConstDef(shared_ptr<ConstDefAST> &constDef);
+    void handleVarDef(shared_ptr<VarDefAST> &varDef);
+    void handleFunc(shared_ptr<FuncDefAST> &funcDef);
+};
+```
+
+`CurLevel`记录当前的作用域层级；`CurType`栈记录当前的返回值类型或定义类型；`CurFunc`记录当前所处的函数；`returnType`记录函数返回值；`isLoop`栈记录当前是否为循环块；`error`是输出流。
+
+---
+
+`program()`函数是错误处理主函数：
+
+```cpp
+void ErrorHandler::program() {
+    vector<shared_ptr<DeclAST>> &decls = (compUnitAst->decls);
+    for (int i = 0; i < decls.size(); ++i) {
+        handleDecl(decls[i]);
+    }
+    vector<shared_ptr<FuncDefAST>> &funcs = compUnitAst->funcs;
+    for (int i = 0; i < funcs.size(); ++i) {
+        handleFunc(funcs[i]);
+    }
+    shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
+    handleMainDef(mainFunc);
+}
+```
+
+下面是错误处理输出函数，因为需要安装行号输出，并且没有重复号的错误，所以我需要对自己记录的错误进行去重和排序处理：
+
+```cpp
+typedef pair<int, string> PIS;
+    
+vector<PIS> errors;
+
+void ErrorHandler::print() {
+    sort(errors.begin(), errors.end());
+    errors.erase(unique(errors.begin(), errors.end()), errors.end());
+    for (auto i: errors) {
+        fprintf(error, "%d %s\n", i.first, i.second.c_str());
+    }
+}
+```
+
+下面展示错误处理函数的过程，开始先记录了返回值和名字，以及是否为循环和当前类型，接着是搜索符号表，查看是否有重名的函数，接着让当前作用域层级加一，开始处理每个参数，接着将该函数插入符号表（防止块内调用自身），然后对于对Block进行错误处理。最后将作用域层级减一，还原是否为循环和当前类型的栈。
+
+```cpp
+void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
+    CurType.push(funcDef->funcType->category);
+    returnType = funcDef->funcType->category;
+
+    isloop.push(false);
+    string funcName = funcDef->name;
+    int line = funcDef->line;
+    for (int i = 0; i < symbolTable.Func.size(); ++i) {
+        if (symbolTable.Func[i].name == funcName) {
+            errors.push_back({line, "b"}); //名字重复定义
+            printf("%d b, func名字重复定义------\n", line);
+            break;
+        }
+    }
+    CurLevel++;
+
+    vector<VarSym> parameters;
+    shared_ptr<FuncFParamsAST> &funcFParams = funcDef->funcFParams;
+    int parameterNum = 0;
+    if (funcFParams != nullptr) {
+        parameterNum = funcFParams->funcFParams.size();
+        for (int i = 0; i < parameterNum; ++i) {
+            handleFuncFParam(funcFParams->funcFParams[i], parameters);
+        }
+    }
+
+
+    FuncSym t(funcName, parameterNum, parameters, CurType.top());
+    symbolTable.Func.push_back(t);
+
+    shared_ptr<BlockAST> &block = funcDef->block;
+    handleBLock(block, true);
+
+    CurType.pop();
+    isloop.pop();
+    CurLevel--;
+}
+```
+
+## 4. 编码后的对设计的修改情况
+
+1. 没有将符号表操作抽象化，比如删除某一层次的变量和常量，我应该抽象为一个函数，而不是耦合在错误处理中。
+
+2. 在之前预读时，有一个是循环预读，直到遇到分号为止，通过查看是否有等号判断是否是赋值语句还是exp：
+
+    ```c++
+    while (PreviewTok != SEMICN) {
+        if (PreviewTok == ASSIGN) {
+            flag = true;
+            break;
+        }
+        PreviewNextToken();
+    }
+    ```
+
+    但是在错误处理时，每个语句不一定有分号，所以我更改了预读的方式，记录当前的index值，先调用函数进行读取标识符（真是读取），然后判断之后的单词是否是等号，然后将index恢复到原来的位置。再接着执行和之前同样的内容即可。
+
+# 二、课程要求
 
 【问题描述】
 
