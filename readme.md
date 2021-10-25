@@ -39,6 +39,7 @@
 ### 3.1 TYPE.h
 
 ```c++
+Type.h:
 #ifndef LexerPrint
 //#define LexerPrint      //控制01词法分析输出
 #endif
@@ -47,12 +48,14 @@
 //#define ParserPrint   //控制02语法分析输出
 #endif
 
+-----------------------------------------
 Parser.cpp:
 #ifdef ParserPrint
             fprintf(out, "<ConstExp>\n");
             cout << "<ConstExp>" << endl;
 #endif
 
+-----------------------------------------
 Lexer.cpp:
 #ifdef LexerPrint
     cout << tokenName[word.category] << " " << word.raw << " " << word.line << endl;
