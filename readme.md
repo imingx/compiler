@@ -1,4 +1,4 @@
-## 一、课程要求
+# 一、课程要求
 
 【问题描述】
 
@@ -114,3 +114,155 @@ RBRACE }
 评测机所采用的编译学生代码的版本是：C/C++ gcc/g++ 8.1.0，Java jdk 1.8
 
 （注意在MAC下压缩会产生额外的文件到压缩包中，需删掉额外文件后提交）。
+
+# 一、词法分析设计文档
+
+## 1. 需求分析
+
+根据给定的文法设计并实现词法分析程序，从源程序中识别出单词，记录其单词的类别和单词的值。
+
+要求：
+
+1. 对于读入的字符串需要保留原样以便输出。并且设计方便打开和关闭词法分析的输出的开关。
+2. 需要为之后的语法分析和错误处理预留接口
+3. 记得保留行号信息，以便错误处理时输出。
+4. 记录单词的类别和单词的值，方便后续阶段调用。
+
+## 2. 编码前的设计
+
+- 将词法分析封装为Lexer类，方便之后增添新的功能和解耦。
+- 将类别码定义为枚举类型，并且定义token常量字符串数组，方便将枚举类型类别码输出为字符串类别码。
+- 在Lexer构造函数中，初始化输入和输出流。并且初始化map容器，将读入的字符串单词名称对应到相应的枚举类型类别码。
+- 读入时，每次读入单个字符，每识别出一个单词，就直接进行输出，然后将结果保存在数组内。
+
+## 3. 模块设计
+
+**文件结构：**
+
+```
+.
+├── include
+│   ├── lexer.h
+│   └── main.h
+├── lexer.cpp
+└── main.cpp
+```
+
+### 3.1 类别码存放和输出设计
+
+```c++
+enum CATEGORY {
+    IDENFR, INTCON, STRCON, MAINTK,
+    CONSTTK, INTTK, BREAKTK, CONTINUETK, IFTK,
+    ELSETK, NOT, AND, OR, WHILETK, GETINTTK,
+    PRINTFTK, RETURNTK, PLUS, MINU, VOIDTK,
+    MULT, DIV, MOD, LSS, LEQ, GRE, GEQ, EQL,
+    NEQ, ASSIGN, SEMICN, COMMA, LPARENT,
+    RPARENT, LBRACK, RBRACK, LBRACE, RBRACE,
+};
+
+static char const *token[CATEGORY_NUM] = {"IDENFR", "INTCON", "STRCON", "MAINTK",
+                                   "CONSTTK", "INTTK", "BREAKTK", "CONTINUETK", "IFTK",
+                                   "ELSETK", "NOT", "AND", "OR", "WHILETK", "GETINTTK",
+                                   "PRINTFTK", "RETURNTK", "PLUS", "MINU", "VOIDTK",
+                                   "MULT", "DIV", "MOD", "LSS", "LEQ", "GRE", "GEQ", "EQL",
+                                   "NEQ", "ASSIGN", "SEMICN", "COMMA", "LPARENT",
+                                   "RPARENT", "LBRACK", "RBRACK", "LBRACE", "RBRACE"};
+```
+
+存放在Lexer头文件中，需要使用static类型。token常量字符串数组实现使用枚举类型识别码来输出对应的字符串识别码。
+
+### 3.2 单词记录方式设计
+
+````c++
+struct Word {
+    enum CATEGORY category;
+    string raw;
+    int line;
+};
+
+static vector<Word> words;
+````
+
+在目前阶段，只记录了每个单词的行号，原始字符串值和枚举类型的识别码， words存放识别的单词。
+
+### 3.3 词法分析器类设计
+
+```c++
+class Lexer {
+private:
+    FILE *in, *out;
+    int line;
+    map<string, CATEGORY> keyWord;
+public:
+    Lexer(const char *in, const char *out);
+    void analyse();
+};
+```
+
+in和out为输入输出流，line记录当前的行号，keyWord记录单词名称和识别码的对应关系，analyse为词法分析主函数。
+
+### 3.4 词法分析方法框架
+
+首先对keyWord进行初始化，将单词值对应到枚举型识别码：
+
+```c++
+keyWord["main"] = MAINTK;
+keyWord["const"] = CONSTTK;
+keyWord["int"] = INTTK;
+keyWord["break"] = BREAKTK;
+keyWord["continue"] = CONTINUETK;
+│
+│
+keyWord[")"] = RPARENT;
+keyWord["["] = LBRACK;
+keyWord["]"] = RBRACK;
+keyWord["{"] = LBRACE;
+keyWord["}"] = RBRACE;
+```
+
+接着是分析设计，根据前面设计的方式读入，下面展示识别标识符的代码，先去掉无用字符串，然后读入下一个单词，当发现是keyWord的键值时，就存放其为对应的枚举类型识别码，否则存放为IDENFR。然后记录原始值和行号，最后进行输出，存入words容器。
+
+```c++
+while ((c = fgetc(in)) != EOF) {
+    string str;
+    Word word;
+    while (isspace(c)) {
+        if (c == '\n') ++line;
+        c = fgetc(in);
+    }
+    if (c == EOF) {
+        break;
+    }
+    if (isalpha(c) || c == '_') {
+        do {
+            str += c;
+            c = fgetc(in);
+        } while (isalnum(c) || c == '_');
+        ungetc(c, in);
+
+        map<string, CATEGORY>::iterator iterator = keyWord.find(str);
+        if (iterator == keyWord.end()) {
+            word.category = IDENFR;
+        } else {
+            word.category = iterator->second;
+        }
+    } else {
+        ……
+    }
+    word.raw = str;
+    word.line = line;
+    #ifdef PRINT
+    cout << token[word.category] << " " << str << endl;
+    fprintf(out, "%s %s\n", token[word.category], str.c_str());
+    #endif
+    words.push_back(word);
+}
+```
+
+输出控制使用`#ifdef PRINT` `endif`来进行控制，在`include/main.h`中`#define PRINT`。
+
+## 4. 编码后的对设计的修改情况
+
+1. 原本使用数组来存放单词和结果，最后发现C++提供了更好的方式，比如使用string存放单词值，`str+=c;`就可以实现单词的扩充。使用动态数组vector更方便操作。
+2. （未实现）实际上想到后来需要进行语法分析，所以我们必须考虑是先词法分析读取完，存入容器，再进行语法分析；还是边词法分析边语法分析，即每次读取一个单词，然后交给语法分析器进行分析。为了照顾后面的情况，我需要独立出一个getNextToken函数。待语法分析进行修改。
