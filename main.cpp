@@ -25,7 +25,7 @@ int main() {
     Parser parser(FILE_OUT);
     parser.program();
 
-//    unique_ptr<CompUnitAST> AST = parser.getAST();
+//    shared_ptr<CompUnitAST> AST = parser.getAST();
 
     return 0;
 }
