@@ -152,7 +152,7 @@ void ErrorHandler::program() {
 }
 ```
 
-下面是错误处理输出函数，因为需要安装行号输出，并且没有重复号的错误，所以我需要对自己记录的错误进行去重和排序处理：
+下面是错误处理输出函数，因为需要按照行号输出，并且没有重复号的错误，所以我需要对自己记录的错误进行去重和排序处理：
 
 ```cpp
 typedef pair<int, string> PIS;
@@ -209,6 +209,18 @@ void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
     CurLevel--;
 }
 ```
+
+在语法分析阶段的错误处理：
+
+```cpp
+if (CurTok != RBRACK) { // ]
+    errors.push_back({getLastTokenLine(), "k"});
+    printf("%d k, ]缺失-----------------\n", getLastTokenLine());
+} else
+    getNextToken();
+```
+
+
 
 ## 4. 编码后的对设计的修改情况
 
