@@ -326,6 +326,8 @@ shared_ptr<CompUnitAST> Parser::parseCompUnit() {
 
 3. 词法分析的`keyWord`和`words`两个容器，之前存放在`Lexer.h`中使用`static`修饰，但是会导致只能本文件访问，其他文件不能访问同一个值。所以，改用存放在`Lexer.c`中，在`Lexer.h`中使用`extern`修饰。
 
+4. 符号表未建立，在错误处理遍历AST树时再建立。
+
 # 二、课程要求
 
 【问题描述】
