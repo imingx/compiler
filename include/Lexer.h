@@ -6,7 +6,6 @@
 
 #include <bits/stdc++.h>
 #include "TYPE.h"
-
 using namespace std;
 
 struct Word {
@@ -32,7 +31,7 @@ public:
 
     void program();
 
-    int getNext(Word &w);
+    int getNext(Word &w, bool * isChar);
 
 
 };

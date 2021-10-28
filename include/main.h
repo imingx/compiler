@@ -8,12 +8,13 @@
 # include "Lexer.h"
 # include "Parser.h"
 # include "AST.h"
-# include "TYPE.h"
-# include "ErrorHandler.h"
+
+
+#define PRINT //控制输出
 
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";
 static const char *FILE_OUT = "output.txt";
-static const char *ERROR = "error.txt";
+
 
 #endif //COMPILER_MAIN_H

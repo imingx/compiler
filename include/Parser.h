@@ -8,8 +8,11 @@
 #include "Lexer.h"
 #include "AST.h"
 #include "TYPE.h"
-#include "ErrorHandler.h"
 
+//template<typename T, typename... Ts>
+//std::shared_ptr<T> make_shared(Ts &&... params) {
+//    return std::shared_ptr<T>(new T(std::forward<Ts>(params)...));
+//}
 
 class Parser {
 private:
@@ -22,14 +25,8 @@ private:
     int PreviewTok;
     shared_ptr<CompUnitAST> AST;
 
-    int getLastTokenLine();
-
-    int getCurTokenLine();
-
 public:
-    shared_ptr<CompUnitAST> &getAST();
-
-    void setIndex(int ind);
+    shared_ptr<CompUnitAST> getAST();
 
     int PreviewNextToken();
 
@@ -112,6 +109,7 @@ public:
 
     shared_ptr<MainFuncDefAST> parseMainDef();
 
-};
 
+    void parseConstChar();
+};
 #endif //COMPILER_PARSER_H

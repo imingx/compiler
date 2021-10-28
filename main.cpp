@@ -2,17 +2,20 @@
 
 using namespace std;
 
-/*
-    cmake_minimum_required(VERSION 3.20)
-    project(Compiler)
-
-    set(CMAKE_CXX_STANDARD 11)
-
-    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h AST.cpp include/AST.h SymbolTable.cpp include/SymbolTable.h include/TYPE.h ErrorHandler.cpp include/ErrorHandler.h)
- */
-
 int main() {
-    //Lexer & Parser的输出控制在TYPE.h
+
+    /*
+    1. 使用lexer.getNext(word)读取每个词
+        Word word;
+        while (lexer.getNext(word)) {
+            cout << word.raw << " " << tokenName[word.category] << endl;
+        }
+    2. 或者使用lexer.program()直接将每个词存入Words，然后读取Words，适用于代码不多的情况。
+        lexer.program();
+        for(auto word : words) {
+            cout << word.raw << " " << tokenName[word.category] << endl;
+        }
+    */
 
     // lexer
     Lexer lexer(FILE_IN, FILE_OUT);
@@ -21,12 +24,8 @@ int main() {
     // parser
     Parser parser(FILE_OUT);
     parser.program();
-    shared_ptr<CompUnitAST> &AST = parser.getAST();
 
-    // error handling
-    ErrorHandler errorHandler(ERROR, AST);
-    errorHandler.program();
-    errorHandler.print();
+//    shared_ptr<CompUnitAST> AST = parser.getAST();
 
     return 0;
 }

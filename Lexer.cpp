@@ -24,7 +24,7 @@ Lexer::~Lexer() {
     fclose(out);
 }
 
-int Lexer::getNext(Word &w) {
+int Lexer::getNext(Word &w, bool * isChar) {
     bool flag = true;
     Word word;
     while (flag) {
@@ -38,7 +38,19 @@ int Lexer::getNext(Word &w) {
         if (c == EOF) {
             return -1;
         }
-        if (isalpha(c) || c == '_') {
+        if( c == '\'') {
+            str += c;
+            word.category = keyWord[str];
+            if (*isChar) {
+                *isChar = false;
+            } else {
+                *isChar = true;
+            }
+        } else if(*isChar){
+            str += c;
+            word.category = CHAR;
+        }
+        else if (isalpha(c) || c == '_') {
             do {
                 str += c;
                 c = fgetc(in);
@@ -51,7 +63,7 @@ int Lexer::getNext(Word &w) {
             } else {
                 word.category = iterator->second;
             }
-        } else if (this->isSingle(c)) {
+        } else  if (this->isSingle(c)) {
             if (c == '/') {
                 c = fgetc(in);
                 if (c == '/') {
@@ -114,10 +126,8 @@ int Lexer::getNext(Word &w) {
         word.line = line;
         word.raw = str;
     }
-#ifdef LexerPrint
-    cout << tokenName[word.category] << " " << word.raw << " " << word.line << endl;
-//    fprintf(error, "%s %s\n", tokenName[word.category], word.raw.c_str());
-#endif
+//    cout << tokenName[word.category] << " " << word.raw << endl;
+//    fprintf(out, "%s %s\n", tokenName[word.category], word.raw.c_str());
     words.push_back(word);
     w = word;
     return w.category;
@@ -125,7 +135,8 @@ int Lexer::getNext(Word &w) {
 
 void Lexer::program() {
     Word word;
-    while (getNext(word) != -1);
+    bool isChar = false;
+    while (getNext(word, &isChar) != -1);
     /*
     char c;
     while ((c = fgetc(in)) != EOF) {
@@ -212,7 +223,7 @@ void Lexer::program() {
         word.line = line;
         word.raw = str;
 //        cout << tokenName[word.category] << " " << str << endl;
-//        fprintf(error, "%s %s\n", tokenName[word.category], str.c_str());
+//        fprintf(out, "%s %s\n", tokenName[word.category], str.c_str());
         words.push_back(word);
     }
      */
@@ -254,6 +265,8 @@ void Lexer::initKeyWord() {
     keyWord["]"] = RBRACK;
     keyWord["{"] = LBRACE;
     keyWord["}"] = RBRACE;
+    keyWord["char"] = CHARTK;
+    keyWord["\'"] = SINGLEQUOTE;
 }
 
 bool Lexer::isSingle(char c) {

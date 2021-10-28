@@ -3,45 +3,17 @@
 //
 
 #include "include/Parser.h"
+#include "include/main.h"
 
 void Parser::syncTokIndex() {
-    PreviewIndex = index - 1;
-    if (PreviewIndex < words.size()) {
-        PreviewTok = words[PreviewIndex++].category;
-    } else {
-        PreviewTok = EOF;
-    }
-}
-
-int Parser::getCurTokenLine() {
-    if (index > 0) {
-        return words[index - 1].line;
-    }
-    return 1;
-}
-
-int Parser::getLastTokenLine() {
-    if (index > 1) {
-        return words[index - 2].line;
-    }
-    return 1;
-}
-
-void Parser::setIndex(int ind) {
-    this->index = ind - 1;
-    if (index < words.size()) {
-        identifierStr = words[index].raw;
-        CurTok = words[index++].category;
-    } else {
-        CurTok = EOF;
-    }
+    PreviewIndex = index;
 }
 
 int Parser::getNextToken() {
     if (index < words.size()) {
         identifierStr = words[index].raw;
         PreviewIndex = index + 1;
-#ifdef ParserPrint
+#ifdef PRINT
         if (index > 0) {
             fprintf(out, "%s %s\n", tokenName[words[index - 1].category], words[index - 1].raw.c_str());
             cout << tokenName[words[index - 1].category] << " " << words[index - 1].raw << endl;
@@ -49,7 +21,7 @@ int Parser::getNextToken() {
 #endif
         return CurTok = words[index++].category;
     } else {
-#ifdef ParserPrint
+#ifdef PRINT
         if (index > 0) {
             fprintf(out, "%s %s\n", tokenName[words[index - 1].category], words[index - 1].raw.c_str());
             cout << tokenName[words[index - 1].category] << " " << words[index - 1].raw << endl;
@@ -83,8 +55,8 @@ Parser::~Parser() {
 }
 
 void Parser::handleCompUnit() {
-    if ((AST = parseCompUnit())) {
-#ifdef ParserPrint
+    if (AST = parseCompUnit()) {
+#ifdef PRINT
         fprintf(out, "<CompUnit>\n");
         cout << "<CompUnit>" << endl;
 #endif
@@ -93,7 +65,7 @@ void Parser::handleCompUnit() {
 
 shared_ptr<FuncTypeAST> Parser::parseFuncType() {
     int type = CurTok;
-    if (type != VOIDTK && type != INTTK) {
+    if (type != VOIDTK && type != INTTK && type != CHARTK) {
         fprintf(stderr, "parseFuncType error!\n");
         exit(-1);
     }
@@ -102,10 +74,10 @@ shared_ptr<FuncTypeAST> Parser::parseFuncType() {
 }
 
 shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
-    if (CurTok != INTTK) {
-        fprintf(stderr, "parseFuncFParam error!\n");
-        exit(-1);
-    }
+//    if (CurTok != INTTK) {
+//        fprintf(stderr, "parseFuncFParam error!\n");
+//        exit(-1);
+//    }
     shared_ptr<BTypeAST> bType;
     string name;
     vector<shared_ptr<ConstExpAST>> constExps;
@@ -117,33 +89,32 @@ shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
         exit(-1);
     }
     name = identifierStr;
-    int identLine = getCurTokenLine();
     getNextToken();
     if (CurTok == LBRACK) {
         getNextToken();
-        if (CurTok != RBRACK) { // ]
-            errors.push_back({getLastTokenLine(), "k"});
-            printf("%d k, ]缺失-----------------\n", getLastTokenLine());
-        } else
-            getNextToken();
+        if (CurTok != RBRACK) {
+            fprintf(stderr, "error!\n");
+            exit(-1);
+        }
         constExps.push_back(nullptr);
+        getNextToken();
         while (CurTok == LBRACK) {
             getNextToken();
             auto t = parseConstExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<ConstExp>\n");
             cout << "<ConstExp>" << endl;
 #endif
             constExps.push_back(move(t));
-            if (CurTok != RBRACK) { // ]
-                errors.push_back({getLastTokenLine(), "k"});
-                printf("%d k, ]缺失-----------------\n", getLastTokenLine());
-            } else
-                getNextToken();
+            if (CurTok != RBRACK) {
+                fprintf(stderr, "error!\n");
+                exit(-1);
+            }
+            getNextToken();
         }
-        return make_shared<FuncFParamAST>(move(bType), name, move(constExps), identLine);
+        return make_shared<FuncFParamAST>(move(bType), name, move(constExps));
     } else {
-        return make_shared<FuncFParamAST>(move(bType), name, move(constExps), identLine);
+        return make_shared<FuncFParamAST>(move(bType), name, move(constExps));
     }
     return nullptr;
 }
@@ -151,24 +122,24 @@ shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
 shared_ptr<FuncFParamsAST> Parser::parseFuncFParams() {
     vector<shared_ptr<FuncFParamAST>> funcFParams;
 
-    if (CurTok != INTTK) {
-        fprintf(stderr, "parseFuncFParams error!1\n");
-        exit(-1);
-    }
+//    if (CurTok != INTTK) {
+//        fprintf(stderr, "parseFuncFParams error!\n");
+//        exit(-1);
+//    }
     auto t = parseFuncFParam();
     funcFParams.push_back(move(t));
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<FuncFParam>\n");
     cout << "<FuncFParam>" << endl;
 #endif
     while (CurTok == COMMA) {
         getNextToken();
-        if (CurTok != INTTK) {
-            fprintf(stderr, "parseFuncFparams error!2\n");
-            exit(-1);
-        }
+//        if (CurTok != INTTK) {
+//            fprintf(stderr, "parseFuncFparams error!\n");
+//            exit(-1);
+//        }
         auto t = parseFuncFParam();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<FuncFParam>\n");
         cout << "<FuncFParam>" << endl;
 #endif
@@ -184,12 +155,12 @@ shared_ptr<FuncDefAST> Parser::parseFuncDef() {
     shared_ptr<FuncFParamsAST> funcFParams = nullptr;
     shared_ptr<BlockAST> block;
 
-    if (CurTok != VOIDTK && CurTok != INTTK) {
-        fprintf(stderr, "parseFuncDef error1\n");
-        exit(-1);
-    }
+//    if (CurTok != VOIDTK && CurTok != INTTK) {
+//        fprintf(stderr, "parseFuncDef error1\n");
+//        exit(-1);
+//    }
     funcType = parseFuncType();
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<FuncType>\n");
     cout << "<FuncType>" << endl;
 #endif
@@ -198,7 +169,6 @@ shared_ptr<FuncDefAST> Parser::parseFuncDef() {
         exit(-2);
     }
     name = identifierStr;
-    int identLine = getCurTokenLine();
     getNextToken();
     if (CurTok != LPARENT) {
         fprintf(stderr, "parseFuncDef error3\n");
@@ -206,28 +176,27 @@ shared_ptr<FuncDefAST> Parser::parseFuncDef() {
     }
     getNextToken();
 
-    if (CurTok == INTTK) {
+    if (CurTok == INTTK || CurTok == CHARTK) {
         funcFParams = parseFuncFParams();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<FuncFParams>\n");
         cout << "<FuncFParams>" << endl;
 #endif
     }
-    if (CurTok != RPARENT) { // )
-        errors.push_back({getLastTokenLine(), "j"});
-        printf("%d j, )缺失-----------------\n", getLastTokenLine());
-    } else
-        getNextToken(); // get {
+    if (CurTok != RPARENT) {
+        // get )
+    }
+    getNextToken(); // get {
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseFuncDef error4\n");
         exit(-4);
     }
     block = parseBlock();
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<Block>\n");
     cout << "<Block>" << endl;
 #endif
-    return make_shared<FuncDefAST>(move(funcType), name, move(funcFParams), move(block), identLine);
+    return make_shared<FuncDefAST>(move(funcType), name, move(funcFParams), move(block));
 }
 
 
@@ -240,22 +209,23 @@ shared_ptr<EqExpAST> Parser::parseEqExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseRelExp();
             relExps.push_back(move(t));
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<RelExp>\n");
             cout << "<RelExp>" << endl;
 #endif
             while (CurTok == EQL || CurTok == NEQ) {
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<EqExp>\n");
                 cout << "<EqExp>" << endl;
 #endif
                 symbols.push_back(CurTok);
                 getNextToken();
                 auto t = parseRelExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<RelExp>\n");
                 cout << "<RelExp>" << endl;
 #endif
@@ -281,23 +251,24 @@ shared_ptr<RelExpAST> Parser::parseRelExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseAddExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<AddExp>\n");
             cout << "<AddExp>" << endl;
 #endif
             addExps.push_back(move(t));
 
             while (CurTok == LSS || CurTok == LEQ || CurTok == GRE || CurTok == GEQ) {
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<RelExp>\n");
                 cout << "<RelExp>" << endl;
 #endif
                 symbols.push_back(CurTok);
                 getNextToken();
                 auto t = parseAddExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<AddExp>\n");
                 cout << "<AddExp>" << endl;
 #endif
@@ -322,21 +293,22 @@ shared_ptr<LAndExpAST> Parser::parseLAndExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseEqExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<EqExp>\n");
             cout << "<EqExp>" << endl;
 #endif
             eqExps.push_back(move(t));
             while (CurTok == AND) {
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<LAndExp>\n");
                 cout << "<LAndExp>" << endl;
 #endif
                 getNextToken();
                 auto t = parseEqExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<EqExp>\n");
                 cout << "<EqExp>" << endl;
 #endif
@@ -361,21 +333,22 @@ shared_ptr<LOrExpAST> Parser::parseLOrExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseLAndExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<LAndExp>\n");
             cout << "<LAndExp>" << endl;
 #endif
             lAndExps.push_back(move(t));
             while (CurTok == OR) {
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<LOrExp>\n");
                 cout << "<LOrExp>" << endl;
 #endif
                 getNextToken();
                 auto t = parseLAndExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<LAndExp>\n");
                 cout << "<LAndExp>" << endl;
 #endif
@@ -399,9 +372,10 @@ shared_ptr<CondAST> Parser::parseCond() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseLOrExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<LOrExp>\n");
             cout << "<LOrExp>" << endl;
 #endif
@@ -451,7 +425,6 @@ shared_ptr<StmtAST> Parser::parseStmt() {
 
     switch (CurTok) {
         case PRINTFTK: {
-            int printfLine = getCurTokenLine();
             getNextToken();
             if (CurTok != LPARENT) {
                 fprintf(stderr, "parseStmt error!\n");
@@ -463,112 +436,60 @@ shared_ptr<StmtAST> Parser::parseStmt() {
                 exit(-1);
             }
             formatString = identifierStr;
-            for (int i = 0; i < formatString.size(); ++i) {
-                if (i == 0 || i == formatString.size() - 1)
-                    continue;
-                if (formatString[i] == '%') {
-                    if (formatString[i + 1] == 'd') {
-                        ++i;
-                        continue;
-                    } else {
-                        errors.push_back({getCurTokenLine(), "a"});
-                        printf("%d a, 非法字符---------\n", getCurTokenLine());
-                        break;
-                    }
-                }
-                if (formatString[i] == '\\') {
-                    if (formatString[i + 1] == 'n') {
-                        ++i;
-                        continue;
-                    } else {
-                        errors.push_back({getCurTokenLine(), "a"});
-                        printf("%d a, 非法字符---------\n", getCurTokenLine());
-                        break;
-                    }
-                }
-                if (formatString[i] == 32 || formatString[i] == 33 ||
-                    (formatString[i] >= 40 && formatString[i] <= 126)) {
-                    continue;
-                } else {
-                    errors.push_back({getCurTokenLine(), "a"});
-                    printf("%d a, 非法字符---------\n", getCurTokenLine());
-                    break;
-                }
-            }
-
             getNextToken();
+
             while (CurTok == COMMA) {
                 getNextToken();
                 auto t = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
                 expsPrintf.push_back(move(t));
             }
-            if (CurTok != RPARENT) { // )
-                errors.push_back({getLastTokenLine(), "j"});
-                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-            } else
+            if (CurTok == RPARENT) {
                 getNextToken(); //get ;
-            if (CurTok != SEMICN) {
-                errors.push_back({getLastTokenLine(), "i"});
-                printf("%d i, 分号缺失--------------\n", getLastTokenLine());
-            } else
                 getNextToken(); //get next
-            return make_shared<StmtAST>(formatString, move(expsPrintf), printfLine);
+                return make_shared<StmtAST>(formatString, move(expsPrintf));
+            }
         }
             break;
         case RETURNTK: {
-            int returnLine = getCurTokenLine();
             getNextToken();
             if (CurTok == SEMICN) {
                 getNextToken();
-                return make_shared<StmtAST>(move(expReturn), "RETURN", returnLine);
+                return make_shared<StmtAST>(move(expReturn), "RETURN");
             } else {
                 expReturn = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                if (CurTok != SEMICN) {
-                    errors.push_back({getLastTokenLine(), "i"});
-                    printf("%d i, 分号缺失--------------\n", getLastTokenLine());
-                } else
-                    getNextToken();
-                return make_shared<StmtAST>(move(expReturn), "RETURN", returnLine);
+                getNextToken();
+                return make_shared<StmtAST>(move(expReturn), "RETURN");
             }
         }
             break;
         case BREAKTK:
         case CONTINUETK: {
-            int bcLine = getCurTokenLine();
             category = CurTok;
             getNextToken(); //get ;
-            if (CurTok != SEMICN) {
-                errors.push_back({getLastTokenLine(), "i"});
-                printf("%d i, 分号缺失----------------\n", getLastTokenLine());
-            } else
-                getNextToken(); //get next
-            return make_shared<StmtAST>(category, bcLine);
+            getNextToken(); //get next
+            return make_shared<StmtAST>(category);
         }
             break;
         case WHILETK: {
             getNextToken(); // get (
             getNextToken();
             condWhile = parseCond();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Cond>\n");
             cout << "<Cond>" << endl;
 #endif
             // now we get )
-            if (CurTok != RPARENT) { // )
-                errors.push_back({getLastTokenLine(), "j"});
-                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-            } else
-                getNextToken();
+            getNextToken();
             stmtWhile = parseStmt();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
@@ -579,24 +500,20 @@ shared_ptr<StmtAST> Parser::parseStmt() {
             getNextToken(); //get (
             getNextToken();
             condIf = parseCond();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Cond>\n");
             cout << "<Cond>" << endl;
 #endif
-            if (CurTok != RPARENT) { // )
-                errors.push_back({getLastTokenLine(), "j"});
-                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-            } else
-                getNextToken();
+            getNextToken();
             stmtIf = parseStmt();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
             if (CurTok == ELSETK) {
                 getNextToken();
                 stmtElse = parseStmt();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Stmt>\n");
                 cout << "<Stmt>" << endl;
 #endif
@@ -606,7 +523,7 @@ shared_ptr<StmtAST> Parser::parseStmt() {
             break;
         case LBRACE: {
             block = parseBlock();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Block>\n");
             cout << "<Block>" << endl;
 #endif
@@ -621,117 +538,74 @@ shared_ptr<StmtAST> Parser::parseStmt() {
         case PLUS:
         case MINU:
         case LPARENT:
-        case INTCON: {
+        case INTCON:
+        case SINGLEQUOTE:{
             expSingle = parseExp(); //get ;
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
-            if (CurTok != SEMICN) {
-                errors.push_back({getLastTokenLine(), "i"});
-                printf("%d i, 分号缺失---------------\n", getLastTokenLine());
-            } else
-                getNextToken(); //get next
+            getNextToken(); //get next
             return make_shared<StmtAST>(move(expSingle));
         }
             break;
         case IDENFR: {
-            int identLine = getCurTokenLine();
             PreviewNextToken();
-            if (PreviewTok == LPARENT) { // 下面是函数 func();
+            if (PreviewTok == LPARENT) {
                 expSingle = parseExp(); //get ;
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                if (CurTok != SEMICN) {
-                    errors.push_back({getLastTokenLine(), "i"});
-                    printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
-                } else
-                    getNextToken(); //get next;
+                getNextToken(); //get next;
                 return make_shared<StmtAST>(move(expSingle));
             }
             bool flag = false;
-            int ind = this->index;
-            syncTokIndex();
-            parseLVal();
-            if (CurTok == ASSIGN) {
-                flag = true;
+            while (PreviewTok != SEMICN) {
+                if (PreviewTok == ASSIGN) {
+                    flag = true;
+                    break;
+                }
+                PreviewNextToken();
             }
-            syncTokIndex();
-//            cout << "now is " << tokenName[CurTok] << endl;
-//            cout << "now is " << tokenName[PreviewTok] << endl;
-//            cout << PreviewIndex;
-            setIndex(ind);
-//            while (PreviewTok != SEMICN) {
-//                if (PreviewTok == ASSIGN) {
-//                    flag = true;
-//                    break;
-//                }
-//                PreviewNextToken();
-//            }
-
             if (flag) {
                 //有=
-//                cout << "now is " << tokenName[CurTok] << endl;
-//                cout << "now is " << tokenName[PreviewTok] << endl;
-//                cout << PreviewIndex;
                 PreviewNextToken();
-//                cout << "now is " << tokenName[CurTok] << endl;
-//                cout << "now is " << tokenName[PreviewTok] << endl;
-//                cout << PreviewIndex;
-
                 if (PreviewTok == GETINTTK) {
                     lValGetint = parseLVal(); // =
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<LVal>\n");
                     cout << "<LVal>" << endl;
 #endif
                     getNextToken();   // getint
                     getNextToken();   // (
                     getNextToken(); // )
-                    if (CurTok != RPARENT) { // )
-                        errors.push_back({getLastTokenLine(), "j"});
-                        printf("%d j, )缺失-----------------\n", getLastTokenLine());
-                    } else
-                        getNextToken(); //;
-                    if (CurTok != SEMICN) {
-                        errors.push_back({getLastTokenLine(), "i"});
-                        printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
-                    } else
-                        getNextToken();  //next
-                    return make_shared<StmtAST>(move(lValGetint), identLine);
+                    getNextToken(); //;
+                    getNextToken();  //next
+                    return make_shared<StmtAST>(move(lValGetint));
                 } else {
                     lVal = parseLVal(); // =
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<LVal>\n");
                     cout << "<LVal>" << endl;
 #endif
                     getNextToken(); // next
                     exp = parseExp(); //;
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<Exp>\n");
                     cout << "<Exp>" << endl;
 #endif
-                    if (CurTok != SEMICN) {
-                        errors.push_back({getLastTokenLine(), "i"});
-                        printf("%d i, 分号缺失-------------------\n", getLastTokenLine());
-                    } else
-                        getNextToken(); //next
-                    return make_shared<StmtAST>(move(lVal), move(exp), identLine);
+                    getNextToken(); //nexxt
+                    return make_shared<StmtAST>(move(lVal), move(exp));
                 }
             } else {
                 //没有=
                 expSingle = parseExp(); //get ;
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
-                if (CurTok != SEMICN) {
-                    errors.push_back({getLastTokenLine(), "i"});
-                    printf("%d i, 分号缺失---------------------\n", getLastTokenLine());
-                } else
-                    getNextToken(); //get next;
+                getNextToken(); //get next;
                 return make_shared<StmtAST>(move(expSingle));
             }
 
@@ -744,9 +618,10 @@ shared_ptr<StmtAST> Parser::parseStmt() {
 shared_ptr<BlockItemAST> Parser::parseBlockItem() {
     switch (CurTok) {
         case CONSTTK:
-        case INTTK: {
+        case INTTK:
+        case CHARTK:{
             auto t = parseDecl();
-            return make_shared<BlockItemAST>(move(t), 0);
+            return make_shared<BlockItemAST>(move(t));
         }
             break;
         case IDENFR:
@@ -763,13 +638,14 @@ shared_ptr<BlockItemAST> Parser::parseBlockItem() {
         case BREAKTK:
         case CONTINUETK:
         case RETURNTK:
-        case PRINTFTK: {
+        case PRINTFTK:
+        case SINGLEQUOTE: {
             auto t = parseStmt();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Stmt>\n");
             cout << "<Stmt>" << endl;
 #endif
-            return make_shared<BlockItemAST>(move(t), 1);
+            return make_shared<BlockItemAST>(move(t));
         }
             break;
         default: {
@@ -789,9 +665,8 @@ shared_ptr<BlockAST> Parser::parseBlock() {
     }
     getNextToken();
     if (CurTok == RBRACE) {
-        int rbraceLine = getCurTokenLine();
         getNextToken();
-        return make_shared<BlockAST>(move(blockItems), rbraceLine);
+        return make_shared<BlockAST>(move(blockItems));
     }
 
     while (true) {
@@ -800,7 +675,7 @@ shared_ptr<BlockAST> Parser::parseBlock() {
                 break;
             case CONSTTK:
             case INTTK:
-
+            case CHARTK:
             case IDENFR:
             case SEMICN:
 
@@ -815,7 +690,8 @@ shared_ptr<BlockAST> Parser::parseBlock() {
             case BREAKTK:
             case CONTINUETK:
             case RETURNTK:
-            case PRINTFTK: {
+            case PRINTFTK:
+            case SINGLEQUOTE:{
                 auto t = parseBlockItem();
                 blockItems.push_back(move(t));
             }
@@ -830,9 +706,8 @@ shared_ptr<BlockAST> Parser::parseBlock() {
             break;
         }
     }
-    int rbraceLine = getCurTokenLine();
     getNextToken();
-    return make_shared<BlockAST>(move(blockItems), rbraceLine);
+    return make_shared<BlockAST>(move(blockItems));
 }
 
 shared_ptr<MainFuncDefAST> Parser::parseMainDef() {
@@ -841,7 +716,6 @@ shared_ptr<MainFuncDefAST> Parser::parseMainDef() {
         exit(-1);
     }
     getNextToken();
-    int mainLine = getCurTokenLine();
     if (CurTok != MAINTK) {
         fprintf(stderr, "parseMainDef wrong!\n");
         exit(-1);
@@ -852,21 +726,21 @@ shared_ptr<MainFuncDefAST> Parser::parseMainDef() {
         exit(-1);
     }
     getNextToken();
-    if (CurTok != RPARENT) { // )
-        errors.push_back({getLastTokenLine(), "j"});
-        printf("%d j, )缺失-----------------\n", getLastTokenLine());
-    } else
-        getNextToken();
+    if (CurTok != RPARENT) {
+        fprintf(stderr, "parseMainDef wrong!\n");
+        exit(-1);
+    }
+    getNextToken();
     if (CurTok != LBRACE) {
         fprintf(stderr, "parseMainDef wrong!\n");
         exit(-1);
     }
     auto t = parseBlock();
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<Block>\n");
     cout << "<Block>" << endl;
 #endif
-    return make_shared<MainFuncDefAST>(move(t), mainLine);
+    return make_shared<MainFuncDefAST>(move(t));
 }
 
 
@@ -879,9 +753,10 @@ shared_ptr<ConstInitValAST> Parser::parseConstInitVal() {
         case MINU:
         case IDENFR:
         case LPARENT:
-        case INTCON: {
+        case INTCON:
+        case SINGLEQUOTE:{
             constExp = parseConstExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<ConstExp>\n");
             cout << "<ConstExp>" << endl;
 #endif
@@ -900,9 +775,10 @@ shared_ptr<ConstInitValAST> Parser::parseConstInitVal() {
                 case IDENFR:
                 case LPARENT:
                 case INTCON:
-                case LBRACE: {
+                case LBRACE:
+                case SINGLEQUOTE:{
                     auto t = parseConstInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<ConstInitVal>\n");
                     cout << "<ConstInitVal>" << endl;
 #endif
@@ -910,7 +786,7 @@ shared_ptr<ConstInitValAST> Parser::parseConstInitVal() {
                     while (CurTok == COMMA) {
                         getNextToken();
                         auto t = parseConstInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
                         fprintf(out, "<ConstInitVal>\n");
                         cout << "<ConstInitVal>" << endl;
 #endif
@@ -952,7 +828,6 @@ shared_ptr<LValAST> Parser::parseLVal() {
     }
     vector<shared_ptr<ExpAST>> exps;
     string name = identifierStr;
-    int identLine = getCurTokenLine();
     getNextToken();
     while (CurTok == LBRACK) {
         getNextToken();
@@ -961,57 +836,79 @@ shared_ptr<LValAST> Parser::parseLVal() {
             case MINU:
             case IDENFR:
             case LPARENT:
-            case INTCON: {
+            case INTCON:
+            case SINGLEQUOTE:{
                 auto t = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
                 exps.push_back(move(t));
-                if (CurTok != RBRACK) { // ]
-                    errors.push_back({getLastTokenLine(), "k"});
-                    printf("%d k, ]缺失-----------------\n", getLastTokenLine());
-                } else
-                    getNextToken();
+                if (CurTok != RBRACK) {
+                    fprintf(stderr, "parseLVal error!\n");
+                    exit(-1);
+                }
+                getNextToken();
             }
                 break;
         }
     }
-    return make_shared<LValAST>(name, move(exps), identLine);
+    return make_shared<LValAST>(name, move(exps));
+}
+
+void Parser::parseConstChar() {
+    if (CurTok == SINGLEQUOTE) {
+        getNextToken();
+        if (CurTok == CHAR) {
+            getNextToken();
+            if(CurTok == SINGLEQUOTE) {
+
+                getNextToken();
+            }
+        }
+    }
+    return;
 }
 
 shared_ptr<PrimaryExpAST> Parser::parsePrimaryExp() {
     switch (CurTok) {
+        case SINGLEQUOTE:{
+            parseConstChar();
+            fprintf(out, "<ConstChar>\n");
+            cout << "<ConstChar>" << endl;
+            return make_shared<PrimaryExpAST>(nullptr);
+        }
+            break;
         case INTCON: {
             auto t = parseNumber();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Number>\n");
             cout << "<Number>" << endl;
 #endif
-            return make_shared<PrimaryExpAST>(move(t), 3);
+            return make_shared<PrimaryExpAST>(move(t));
         }
         case LPARENT: {
             getNextToken();
             auto t = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
-            if (CurTok != RPARENT) { // )
-                errors.push_back({getLastTokenLine(), "j"});
-                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-            } else
-                getNextToken();
-            return make_shared<PrimaryExpAST>(move(t), 1);
+            if (CurTok != RPARENT) {
+                fprintf(stderr, "parsePrimaryExp error!\n");
+                exit(-1);
+            }
+            getNextToken();
+            return make_shared<PrimaryExpAST>(move(t));
         }
             break;
         case IDENFR: {
             auto t = parseLVal();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<LVal>\n");
             cout << "<LVal>" << endl;
 #endif
-            return make_shared<PrimaryExpAST>(move(t), 2);
+            return make_shared<PrimaryExpAST>(move(t));
         }
             break;
         default:
@@ -1027,9 +924,10 @@ shared_ptr<ExpAST> Parser::parseExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseAddExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<AddExp>\n");
             cout << "<AddExp>" << endl;
 #endif
@@ -1050,9 +948,10 @@ shared_ptr<FuncRParamsAST> Parser::parseFuncRParams() {
             case MINU:
             case IDENFR:
             case LPARENT:
-            case INTCON: {
+            case INTCON:
+            case SINGLEQUOTE:{
                 auto t = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<Exp>\n");
                 cout << "<Exp>" << endl;
 #endif
@@ -1087,12 +986,12 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
         case MINU:
         case NOT: {
             auto t = parseUnaryOp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<UnaryOp>\n");
             cout << "<UnaryOp>" << endl;
 #endif
             auto tt = parseUnaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<UnaryExp>\n");
             cout << "<UnaryExp>" << endl;
 #endif
@@ -1100,9 +999,10 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
         }
             break;
         case INTCON:
-        case LPARENT: {
+        case LPARENT:
+        case SINGLEQUOTE: {
             auto t = parsePrimaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<PrimaryExp>\n");
             cout << "<PrimaryExp>" << endl;
 #endif
@@ -1115,39 +1015,35 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             switch (PreviewTok) {
                 case LPARENT: {
                     string name = identifierStr;
-                    int identLine = getCurTokenLine();
-                    getNextToken(); //get (
-                    getNextToken(); //get FuncRParams
+                    getNextToken();
+                    if (CurTok != LPARENT) {
+                        fprintf(stderr, "parseUnaryExp wrong!1");
+                        exit(-1);
+                    }
+                    getNextToken();
                     switch (CurTok) {
                         case PLUS:
                         case MINU:
                         case IDENFR:
                         case LPARENT:
-                        case INTCON: {
+                        case INTCON:
+                        case SINGLEQUOTE:{
                             auto t = parseFuncRParams();
-#ifdef ParserPrint
+#ifdef PRINT
                             fprintf(out, "<FuncRParams>\n");
                             cout << "<FuncRParams>" << endl;
 #endif
-                            if (CurTok != RPARENT) { // )
-                                errors.push_back({getLastTokenLine(), "j"});
-                                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-                            } else
-                                getNextToken();
-                            return make_shared<UnaryExpAST>(name, move(t), identLine);
+                            if (CurTok != RPARENT) {
+                                fprintf(stderr, "parseUnaryExp wrong!2");
+                                exit(-1);
+                            }
+                            getNextToken();
+                            return make_shared<UnaryExpAST>(name, move(t));
                         }
                             break;
                         case RPARENT: {
                             getNextToken();
-                            return make_shared<UnaryExpAST>(name, nullptr, identLine);
-                        }
-                            break;
-                        default: {
-                            if (CurTok != RPARENT) { // )
-                                errors.push_back({getLastTokenLine(), "j"});
-                                printf("%d j, )缺失-----------------\n", getLastTokenLine());
-                            }
-                            return make_shared<UnaryExpAST>(name, nullptr, identLine);
+                            return make_shared<UnaryExpAST>(name, nullptr);
                         }
                             break;
                     }
@@ -1155,7 +1051,7 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                     break;
                 case LBRACK: {
                     auto t = parsePrimaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<PrimaryExp>\n");
                     cout << "<PrimaryExp>" << endl;
 #endif
@@ -1163,7 +1059,7 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
                 }
                 default: { // Ident {  [ exp ] }
                     auto t = parsePrimaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<PrimaryExp>\n");
                     cout << "<PrimaryExp>" << endl;
 #endif
@@ -1177,7 +1073,6 @@ shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
             exit(-1);
         }
     }
-
     return nullptr;
 }
 
@@ -1190,9 +1085,10 @@ shared_ptr<MulExpAST> Parser::parseMulExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseUnaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<UnaryExp>\n");
             cout << "<UnaryExp>" << endl;
 #endif
@@ -1204,7 +1100,7 @@ shared_ptr<MulExpAST> Parser::parseMulExp() {
     }
 
     while (CurTok == MULT || CurTok == DIV || CurTok == MOD) {
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<MulExp>\n");
         cout << "<MulExp>" << endl;
 #endif
@@ -1216,9 +1112,10 @@ shared_ptr<MulExpAST> Parser::parseMulExp() {
             case IDENFR:
             case LPARENT:
             case INTCON:
-            case NOT: {
+            case NOT:
+            case SINGLEQUOTE:{
                 auto t = parseUnaryExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<UnaryExp>\n");
                 cout << "<UnaryExp>" << endl;
 #endif
@@ -1242,9 +1139,10 @@ shared_ptr<AddExpAST> Parser::parseAddExp() {
         case IDENFR:
         case LPARENT:
         case INTCON:
-        case NOT: {
+        case NOT:
+        case SINGLEQUOTE:{
             auto t = parseMulExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<MulExp>\n");
             cout << "<MulExp>" << endl;
 #endif
@@ -1256,7 +1154,7 @@ shared_ptr<AddExpAST> Parser::parseAddExp() {
     }
 
     while (CurTok == PLUS || CurTok == MINU) {
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<AddExp>\n");
         cout << "<AddExp>" << endl;
 #endif
@@ -1268,9 +1166,10 @@ shared_ptr<AddExpAST> Parser::parseAddExp() {
             case IDENFR:
             case LPARENT:
             case INTCON:
-            case NOT: {
+            case NOT:
+            case SINGLEQUOTE:{
                 auto t = parseMulExp();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<MulExp>\n");
                 cout << "<MulExp>" << endl;
 #endif
@@ -1290,9 +1189,10 @@ shared_ptr<ConstExpAST> Parser::parseConstExp() {
         case MINU:
         case IDENFR:
         case LPARENT:
-        case INTCON: {
+        case INTCON:
+        case SINGLEQUOTE:{
             auto t = parseAddExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<AddExp>\n");
             cout << "<AddExp>" << endl;
 #endif
@@ -1312,42 +1212,39 @@ shared_ptr<ConstDefAST> Parser::parseConstDef() {
     if (CurTok != IDENFR)
         exit(-1);
     name = identifierStr;
-    int identLine = getCurTokenLine();
     getNextToken();
     while (true) {
         if (CurTok == ASSIGN) {
             getNextToken();
             constInitVal = parseConstInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<ConstInitVal>\n");
             cout << "<ConstInitVal>" << endl;
 #endif
             break;
-        } else if (CurTok == LBRACK) { //[
+        } else if (CurTok == LBRACK) {
             getNextToken();
             auto t = parseConstExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<ConstExp>\n");
             cout << "<ConstExp>" << endl;
 #endif
             constExps.push_back(move(t));
-
-            if (CurTok != RBRACK) { // ]
-                errors.push_back({getLastTokenLine(), "k"});
-                printf("%d k, ]缺失-----------------\n", getLastTokenLine());
-            } else
-                getNextToken();
+            if (CurTok != RBRACK)
+                exit(-2);
+            getNextToken();
         } else {
             exit(-1);
         }
     }
 
-    return make_shared<ConstDefAST>(name, move(constExps), move(constInitVal), identLine);
+    return make_shared<ConstDefAST>(name, move(constExps), move(constInitVal));
 }
 
 shared_ptr<BTypeAST> Parser::parseBType() {
     switch (CurTok) {
         case INTTK:
+        case CHARTK:
             getNextToken();
             return make_shared<BTypeAST>(CurTok, identifierStr);
         default:
@@ -1365,6 +1262,7 @@ shared_ptr<ConstDeclAST> Parser::parseConstDecl() {
     getNextToken();
     switch (CurTok) {
         case INTTK:
+        case CHARTK:
             btype = parseBType();
             break;
         default:
@@ -1375,7 +1273,7 @@ shared_ptr<ConstDeclAST> Parser::parseConstDecl() {
     if (CurTok != IDENFR)
         exit(-1);
     auto t = parseConstDef();
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<ConstDef>\n");
     cout << "<ConstDef>" << endl;
 #endif
@@ -1386,18 +1284,17 @@ shared_ptr<ConstDeclAST> Parser::parseConstDecl() {
         if (CurTok != IDENFR)
             exit(-1);
         auto t = parseConstDef();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<ConstDef>\n");
         cout << "<ConstDef>" << endl;
 #endif
         constDefs.push_back(move(t));
     }
-
     if (CurTok != SEMICN) {
-        errors.push_back({getLastTokenLine(), "i"});
-        printf("%d i, 分号缺失---------------\n", getLastTokenLine());
-    } else
-        getNextToken();
+        fprintf(stderr, "error\n");
+        exit(-4);
+    }
+    getNextToken();
     return make_shared<ConstDeclAST>(symbol, move(btype), move(constDefs));
 }
 
@@ -1409,9 +1306,10 @@ shared_ptr<InitValAST> Parser::parseInitVal() {
         case MINU:
         case IDENFR:
         case LPARENT:
-        case INTCON: {
+        case INTCON:
+        case SINGLEQUOTE:{
             exp = parseExp();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<Exp>\n");
             cout << "<Exp>" << endl;
 #endif
@@ -1421,17 +1319,19 @@ shared_ptr<InitValAST> Parser::parseInitVal() {
         case LBRACE: {
             getNextToken();
             switch (CurTok) {
-                case RBRACE:
+                case RBRACE: {
                     getNextToken();
                     return make_shared<InitValAST>(move(initVals));
+                }
                 case PLUS:
                 case MINU:
                 case IDENFR:
                 case LPARENT:
                 case INTCON:
-                case LBRACE: {
+                case LBRACE:
+                case SINGLEQUOTE:{
                     auto t = parseInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
                     fprintf(out, "<InitVal>\n");
                     cout << "<InitVal>" << endl;
 #endif
@@ -1439,7 +1339,7 @@ shared_ptr<InitValAST> Parser::parseInitVal() {
                     while (CurTok == COMMA) {
                         getNextToken();
                         auto t = parseInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
                         fprintf(out, "<InitVal>\n");
                         cout << "<InitVal>" << endl;
 #endif
@@ -1473,33 +1373,32 @@ shared_ptr<VarDefAST> Parser::parseVarDef() {
         exit(-1);
     }
     name = identifierStr;
-    int identLine = getCurTokenLine();
     getNextToken();
     while (CurTok == LBRACK) {
         getNextToken();
         auto t = parseConstExp();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<ConstExp>\n");
         cout << "<ConstExp>" << endl;
 #endif
         constExps.push_back(move(t));
-        if (CurTok != RBRACK) { // ]
-            errors.push_back({getLastTokenLine(), "k"});
-            printf("%d k, ]缺失-----------------\n", getLastTokenLine());
-        } else
-            getNextToken();
+        if (CurTok != RBRACK) {
+            fprintf(stderr, "parseVarDef error2\n");
+            exit(-1);
+        }
+        getNextToken();
     }
 
     if (CurTok == ASSIGN) {
         getNextToken();
         initVal = parseInitVal();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<InitVal>\n");
         cout << "<InitVal>" << endl;
 #endif
-        return make_shared<VarDefAST>(name, move(constExps), move(initVal), identLine);
+        return make_shared<VarDefAST>(name, move(constExps), move(initVal));
     } else {
-        return make_shared<VarDefAST>(name, move(constExps), nullptr, identLine);
+        return make_shared<VarDefAST>(name, move(constExps), nullptr);
     }
     return nullptr;
 }
@@ -1507,14 +1406,14 @@ shared_ptr<VarDefAST> Parser::parseVarDef() {
 shared_ptr<VarDeclAST> Parser::parseVarDecl() {
     shared_ptr<BTypeAST> btype;
     vector<shared_ptr<VarDefAST>> varDefs;
-    if (CurTok != INTTK) {
-        fprintf(stderr, "parseVarDecl error!");
-        exit(-1);
-    }
+//    if (CurTok != INTTK) {
+//        fprintf(stderr, "parseVarDecl error!");
+//        exit(-1);
+//    }
     btype = parseBType();
 
     auto t = parseVarDef();
-#ifdef ParserPrint
+#ifdef PRINT
     fprintf(out, "<VarDef>\n");
     cout << "<VarDef>" << endl;
 #endif
@@ -1523,7 +1422,7 @@ shared_ptr<VarDeclAST> Parser::parseVarDecl() {
     while (CurTok == COMMA) {
         getNextToken();
         auto t = parseVarDef();
-#ifdef ParserPrint
+#ifdef PRINT
         fprintf(out, "<VarDef>\n");
         cout << "<VarDef>" << endl;
 #endif
@@ -1531,10 +1430,10 @@ shared_ptr<VarDeclAST> Parser::parseVarDecl() {
     }
 
     if (CurTok != SEMICN) {
-        errors.push_back({getLastTokenLine(), "i"});
-        printf("%d i, 分号缺失---------------\n", getLastTokenLine());
-    } else
-        getNextToken();
+        fprintf(stderr, "parseVarDecl error!\n");
+        exit(-1);
+    }
+    getNextToken();
     return make_shared<VarDeclAST>(move(btype), move(varDefs));
 }
 
@@ -1542,20 +1441,21 @@ shared_ptr<DeclAST> Parser::parseDecl() {
     switch (CurTok) {
         case CONSTTK: {
             auto t = parseConstDecl();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<ConstDecl>\n");
             cout << "<ConstDecl>" << endl;
 #endif
-            return make_shared<DeclAST>(move(t), 1);
+            return make_shared<DeclAST>(move(t));
         }
             break;
-        case INTTK: {
+        case INTTK:
+        case CHARTK:{
             auto t = parseVarDecl();
-#ifdef ParserPrint
+#ifdef PRINT
             fprintf(out, "<VarDecl>\n");
             cout << "<VarDecl>" << endl;
 #endif
-            return make_shared<DeclAST>(move(t), 0);
+            return make_shared<DeclAST>(move(t));
         }
             break;
         default:
@@ -1583,19 +1483,20 @@ shared_ptr<CompUnitAST> Parser::parseCompUnit() {
                 break;
             case VOIDTK: {
                 auto func = parseFuncDef();
-#ifdef ParserPrint
+#ifdef PRINT
                 fprintf(out, "<FuncDef>\n");
                 cout << "<FuncDef>" << endl;
 #endif
                 funcs.push_back(move(func));
                 break;
             }
-            case INTTK: {
+            case INTTK:
+            case CHARTK:{
                 PreviewNextToken();
                 switch (PreviewTok) {
                     case MAINTK: {
                         main = parseMainDef();
-#ifdef ParserPrint
+#ifdef PRINT
                         fprintf(out, "<MainFuncDef>\n");
                         cout << "<MainFuncDef>" << endl;
 #endif
@@ -1608,7 +1509,7 @@ shared_ptr<CompUnitAST> Parser::parseCompUnit() {
                             {
                                 auto func = parseFuncDef();
                                 funcs.push_back(move(func));
-#ifdef ParserPrint
+#ifdef PRINT
                                 fprintf(out, "<FuncDef>\n");
                                 cout << "<FuncDef>" << endl;
 #endif
@@ -1641,6 +1542,6 @@ shared_ptr<CompUnitAST> Parser::parseCompUnit() {
     return make_shared<CompUnitAST>(move(decls), move(funcs), move(main));
 }
 
-shared_ptr<CompUnitAST> &Parser::getAST() {
-    return AST;
+shared_ptr<CompUnitAST> Parser::getAST() {
+    return move(AST);
 }

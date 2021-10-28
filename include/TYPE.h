@@ -4,25 +4,8 @@
 
 #ifndef COMPILER_TYPE_H
 #define COMPILER_TYPE_H
-
 #include <bits/stdc++.h>
-
 using namespace std;
-
-#ifndef LexerPrint
-//#define LexerPrint      //控制01词法分析输出
-#endif
-
-#ifndef ParserPrint
-//#define ParserPrint   //控制02语法分析输出
-#endif
-
-typedef pair<int, string> PIS;
-
-//template<typename T, typename... Ts>
-//std::shared_ptr<T> make_unique(Ts &&... params) {
-//    return std::shared_ptr<T>(new T(std::forward<Ts>(params)...));
-//}
 
 //rule name
 enum RULE_CATEGORY {
@@ -61,7 +44,8 @@ enum TOKEN_CATEGORY {
     PRINTFTK, RETURNTK, PLUS, MINU, VOIDTK,
     MULT, DIV, MOD, LSS, LEQ, GRE, GEQ, EQL,
     NEQ, ASSIGN, SEMICN, COMMA, LPARENT,
-    RPARENT, LBRACK, RBRACK, LBRACE, RBRACE,
+    RPARENT, LBRACK, RBRACK, LBRACE, RBRACE, CHARTK,
+    CHAR, SINGLEQUOTE
 };
 
 static const int TOKEN_NUM = 100;
@@ -72,7 +56,8 @@ static const char *tokenName[TOKEN_NUM] = {"IDENFR", "INTCON", "STRCON", "MAINTK
                                            "PRINTFTK", "RETURNTK", "PLUS", "MINU", "VOIDTK",
                                            "MULT", "DIV", "MOD", "LSS", "LEQ", "GRE", "GEQ", "EQL",
                                            "NEQ", "ASSIGN", "SEMICN", "COMMA", "LPARENT",
-                                           "RPARENT", "LBRACK", "RBRACK", "LBRACE", "RBRACE"};
+                                           "RPARENT", "LBRACK", "RBRACK", "LBRACE", "RBRACE", "CHARTK",
+        "CHAR", "SINGLEQUOTE"};
 
 
 #endif //COMPILER_TYPE_H
