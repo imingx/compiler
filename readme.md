@@ -13,6 +13,8 @@
 - [03\_错误处理][03_错误处理]
     - [错误处理测试用例][错误处理测试用例] 
 
+- [期中考试][期中考试]
+
 
 ## 提交信息
 
@@ -55,6 +57,8 @@ git commit的message可以换行，在输入第一个"后，输入回车并不�
 
 
 
+
+[期中考试]: https://github.com/imingx/Compiler/tree/midtermExam "期中考试"
 
 [share_ptr]: http://www.cplusplus.com/reference/memory/shared_ptr/ "share_ptr"
 [00_文法解读]: https://github.com/imingx/Compiler/tree/00_%E6%96%87%E6%B3%95%E8%A7%A3%E8%AF%BB "00_文法解读"
