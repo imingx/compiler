@@ -5,7 +5,7 @@
     | 单词名             | 类别码      |
     | ------------------ | ----------- |
     | `char`             | CHARTK      |
-    | 单个字符NormalChar | CHAR        |
+    | `NormalChar`单个字符 | CHAR        |
     | `'`                | SINGLEQUATE |
 
 2. 文法新增：
@@ -16,3 +16,16 @@
 基本表达式   PrimaryExp → '(' Exp ')' | LVal | Number | ''' NormalChar'''
 ```
 
+3. 例子
+
+输入：
+
+```c++
+
+```
+
+输出：
+
+```c++
+
+```
