@@ -7,7 +7,7 @@
 
 #include <bits/stdc++.h>
 #include "Lexer.h"
-#include "TYPE.h"
+#include "type.h"
 
 using namespace std;
 

@@ -5,7 +5,7 @@
 #define COMPILER_LEXER_H
 
 #include <bits/stdc++.h>
-#include "TYPE.h"
+#include "type.h"
 
 using namespace std;
 

@@ -6,7 +6,7 @@
 #define COMPILER_ERRORHANDLER_H
 
 #include <bits/stdc++.h>
-#include "TYPE.h"
+#include "type.h"
 #include "AST.h"
 #include "SymbolTable.h"
 

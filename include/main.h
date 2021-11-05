@@ -8,7 +8,7 @@
 # include "Lexer.h"
 # include "Parser.h"
 # include "AST.h"
-# include "TYPE.h"
+# include "type.h"
 # include "ErrorHandler.h"
 
 // FILE IO define
