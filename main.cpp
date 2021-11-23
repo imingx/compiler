@@ -26,7 +26,16 @@ int main() {
     // error handling
     ErrorHandler errorHandler(ERROR, AST);
     errorHandler.program();
-    errorHandler.print();
+    errorHandler.print(); // error print
+
+    // Above is frontend
+    // --------------------------------------------
+    // Below is backend
+
+    IRcodeMaker iRcodeMaker(AST);
+    iRcodeMaker.program();
+    iRcodeMaker.print();
+
 
     return 0;
 }

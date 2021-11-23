@@ -48,7 +48,7 @@ void ErrorHandler::handleVarDecl(shared_ptr<VarDeclAST> &varDecl) {
 
 int ErrorHandler::handleAddExp(shared_ptr<AddExpAST> &addExp) {
     vector<shared_ptr<MulExpAST>> &mulExps = addExp->mulExps;
-    int d = 0;
+    int d = 0; //维度
     for (int i = 0; i < mulExps.size(); ++i) {
         d = handleMulExp(mulExps[i]);
     }
@@ -348,6 +348,11 @@ int ErrorHandler::handleLVal(shared_ptr<LValAST> &lVal, bool &ans) {
         printf("%d c, 未定义名字-------\n", line);
     }
 
+    vector<shared_ptr<ExpAST>> exps = lVal->exps;
+    for (int k = 0; k < exps.size(); ++k) {
+        handleExp(exps[k]);
+    }
+
     int originDim = 0;
     int lValDim = lVal->exps.size();
     if (flag) {
@@ -386,7 +391,7 @@ int ErrorHandler::handleExp(shared_ptr<ExpAST> &exp) {
 void ErrorHandler::handleStmt(shared_ptr<StmtAST> &stmt) {
 
     switch (stmt->type) {
-        case 1: {
+        case 1: {     //1 lval = exp
             //line is 0, represent it is right.
             //line is not 0, represent the line number.
             bool ans = false;
@@ -398,18 +403,18 @@ void ErrorHandler::handleStmt(shared_ptr<StmtAST> &stmt) {
             handleExp(stmt->exp);
         }
             break;
-        case 2: {
+        case 2: {     //2 [exp];
             if (stmt->expSingle != nullptr)
                 handleExp(stmt->expSingle);
         }
             break;
-        case 3: {
+        case 3: {     //3 block
             CurLevel++;
             handleBLock(stmt->block, false);
             CurLevel--;
         }
             break;
-        case 4: {
+        case 4: {     //4 if
             handleCond(stmt->condIf);
             handleStmt(stmt->stmtIf);
             if (stmt->stmtElse != nullptr)
@@ -423,7 +428,7 @@ void ErrorHandler::handleStmt(shared_ptr<StmtAST> &stmt) {
             isloop.pop();
         }
             break;
-        case 6: {
+        case 6: { //6 break or continue;
             if (!isloop.top()) {
                 errors.push_back({stmt->line, "m"});
                 printf("%d m, 非循环块用了break,continue---------\n", stmt->line);
@@ -440,7 +445,7 @@ void ErrorHandler::handleStmt(shared_ptr<StmtAST> &stmt) {
             }
         }
             break;
-        case 8: {
+        case 8: {   //8 lval = getint();
             bool ans = false;
             handleLVal(stmt->lValGetint, ans);
             if (ans) {
@@ -479,6 +484,7 @@ void ErrorHandler::handleBLock(shared_ptr<BlockAST> &block, bool isfunc) {
     for (int i = 0; i < blockItems.size(); ++i) {
         handleBlockItem(blockItems[i]);
     }
+    //符号表
     for (auto i = symbolTable.Var.begin(); i != symbolTable.Var.end(); ++i) {
         if (i->level == CurLevel) {
             symbolTable.Var.erase(i);
@@ -491,7 +497,7 @@ void ErrorHandler::handleBLock(shared_ptr<BlockAST> &block, bool isfunc) {
             --i;
         }
     }
-
+    //判断return
     if (blockItems.empty()) {
         if (returnType == INTTK && isfunc) {
             errors.push_back({block->line, "g"});
@@ -593,8 +599,10 @@ void ErrorHandler::program() {
     for (int i = 0; i < funcs.size(); ++i) {
         handleFunc(funcs[i]);
     }
-    shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
-    handleMainDef(mainFunc);
+    if (compUnitAst->main != nullptr) {
+        shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
+        handleMainDef(mainFunc);
+    }
 }
 
 

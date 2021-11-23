@@ -19,7 +19,7 @@ class ErrorHandler {
 private:
     int CurLevel;
 
-    stack<int> CurType; //voidtk, inttk, while, if
+    stack<int> CurType; //voidtk, inttk
 
     string CurFunc; //目前所处的函数
     int returnType;

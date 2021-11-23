@@ -74,5 +74,107 @@ static const char *tokenName[TOKEN_NUM] = {"IDENFR", "INTCON", "STRCON", "MAINTK
                                            "NEQ", "ASSIGN", "SEMICN", "COMMA", "LPARENT",
                                            "RPARENT", "LBRACK", "RBRACK", "LBRACE", "RBRACE"};
 
+enum OperatorType {
+    OpArray,
+    OpVar,   //变量
+    OpConst, //常量
+    OpPLUS,
+    OpMINU,
+    OpMULT,
+    OpDIV,
+    OpAssign,
+    OpPush,
+    OpCall,
+    OpNot,
+    OpMOD,
+    OpConstArray,
+    OpScanf,
+    OpPrint,
+    OpFunc,
+    OpJMain,
+    OpExit,
+    OpPara,
+    OpParaArr,
+    OpReturn,
+    OpPrintInt,
+//    OpAssArray,
+//    OpGetArray,
+//    OpLSS,
+//    OpLEQ,
+//    OpGRE,
+//    OpGEQ,
+//    OpEQL,
+//    OpNEQ,
+//    OpBEZ,
+//    OpBNEZ,
+//    OpJmp,
+//    OpLabel,
+//    OpParam,
+//    OpPaVal,
+//    OpCall,
+//    OpReturn,
+//    OpRetVar,
+};
+
+
+static const char *const operatorString[] = {
+        "array",
+        "var",   //变量
+        "const", //常量
+        "PLUS",
+        "MINU",
+        "MULT",
+        "DIV",
+        "ASSIGN",
+        "push",
+        "call",
+        "Not",
+        "MOD",
+        "OpConstArray",
+        "getint",
+        "print",
+        "func",
+        "OpJMain",
+        "Exit",
+        "para",
+        "paraArr",
+        "ret",
+        "printInt",
+//        "PLUS  ",
+//        "MINU  ",
+//        "MULT  ",
+//        "DIV   ",
+//        "ASSIGN",
+//        "Scanf ",
+//        "Print ",
+//        "ConDef",
+//        "VarDef",
+//        "FunDef",
+//        "JMain ",
+//        "Exit  ",
+//        "AssArr",
+//        "GetArr",
+//        "bez   ",
+//        "bnez  ",
+//        "Jmp to",
+//        "Label:",
+//        "params",
+//        "call p",
+//        "Fc Cal",
+//        "Return",
+//        "retVar",
+};
+
+enum SymbolType {
+    INT,
+    VOID,
+    ARR,
+};
+
+static const char *const symbolTypeString[] = {
+        "int",
+        "void",
+        "arr",
+};
 
 #endif //COMPILER_TYPE_H

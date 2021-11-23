@@ -93,12 +93,13 @@ void Parser::handleCompUnit() {
 
 shared_ptr<FuncTypeAST> Parser::parseFuncType() {
     int type = CurTok;
+    string typestring = identifierStr;
     if (type != VOIDTK && type != INTTK) {
         fprintf(stderr, "parseFuncType error!\n");
         exit(-1);
     }
     getNextToken();
-    return make_shared<FuncTypeAST>(type, identifierStr);
+    return make_shared<FuncTypeAST>(type, typestring);
 }
 
 shared_ptr<FuncFParamAST> Parser::parseFuncFParam() {
@@ -941,8 +942,9 @@ shared_ptr<NumberAST> Parser::parseNumber() {
         exit(-1);
     }
     long long number = stoll(identifierStr.c_str());
+    string numberstring = identifierStr;
     getNextToken();
-    return make_shared<NumberAST>(number, identifierStr);
+    return make_shared<NumberAST>(number, numberstring);
 }
 
 shared_ptr<LValAST> Parser::parseLVal() {
@@ -1076,8 +1078,9 @@ shared_ptr<UnaryOpAST> Parser::parseUnaryOp() {
     if (CurTok != PLUS && CurTok != MINU && CurTok != NOT) {
         fprintf(stderr, "parseUnaryOp error!");
     }
+    int Tok = CurTok;
     getNextToken();
-    return make_shared<UnaryOpAST>(CurTok);
+    return make_shared<UnaryOpAST>(Tok);
 }
 
 shared_ptr<UnaryExpAST> Parser::parseUnaryExp() {
@@ -1347,9 +1350,11 @@ shared_ptr<ConstDefAST> Parser::parseConstDef() {
 
 shared_ptr<BTypeAST> Parser::parseBType() {
     switch (CurTok) {
-        case INTTK:
+        case INTTK: {
+            string typeString = identifierStr;
             getNextToken();
-            return make_shared<BTypeAST>(CurTok, identifierStr);
+            return make_shared<BTypeAST>(INTTK, typeString);
+        }
         default:
             exit(-1);
     }
