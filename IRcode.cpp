@@ -103,6 +103,7 @@ string Obj::p() {
         case 5:
             return to_string(num);
     }
+    return "";
 }
 
 IRcodeMaker::IRcodeMaker(shared_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
@@ -211,12 +212,13 @@ shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
         shared_ptr<Obj> obj = make_shared<Obj>(varName);
         return obj;
     } else {
-        shared_ptr<Obj> obj[3];
-        obj[0] = newtemp();
-        obj[1] = make_shared<Obj>(varName, now);
-        shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-        IRCodeList.push_back(t);
-        return obj[0];
+//        shared_ptr<Obj> obj[3];
+//        obj[0] = newtemp();
+//        obj[1] = make_shared<Obj>(varName, now);
+//        shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+//        IRCodeList.push_back(t);
+        shared_ptr<Obj> obj = make_shared<Obj>(varName, now);
+        return obj;
     }
 }
 
@@ -237,6 +239,7 @@ shared_ptr<Obj> IRcodeMaker::programPrimaryExp(shared_ptr<PrimaryExpAST> &primar
             return obj;
         }
     }
+    return nullptr;
 }
 
 shared_ptr<Obj> IRcodeMaker::programExp(shared_ptr<ExpAST> &exp) {
@@ -248,7 +251,6 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
         case 1: {
             return programPrimaryExp(unaryExp->primaryExp);
         }
-            break;
         case 2: {//函数调用
             string funcName = unaryExp->name; //函数名
             shared_ptr<FuncRParamsAST> funcRParams = unaryExp->funcRParams;
@@ -267,9 +269,9 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
             ret[0] = newtemp();
             ret[1] = make_shared<Obj>("RET");
             t = make_shared<IRcode>(OpAssign, ret);
+            IRCodeList.push_back(t);
             return ret[0];
         }
-            break;
         case 3: {// + - unaryExp
             shared_ptr<UnaryOpAST> unaryOp = unaryExp->unaryOp;
             shared_ptr<Obj> ans = programUnaryExp(unaryExp->unaryExp);
@@ -290,8 +292,8 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
             IRCodeList.push_back(t);
             return obj[0];
         }
-            break;
     }
+    return nullptr;
 }
 
 shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
@@ -431,7 +433,7 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
             IRCodeList.push_back(t);
         }
     }
-    //插入符号表？
+    //插入符号表
 }
 
 void IRcodeMaker::programVarDecl(shared_ptr<VarDeclAST> &varDecl) {
@@ -581,7 +583,7 @@ void IRcodeMaker::programPrintf(const string &formatString, vector<shared_ptr<Ex
 //    }
     for (int i = 0; i < divide.size(); ++i) {
         //输出字符串
-        if (divide[i].compare(""))  {
+        if (divide[i].compare("")) {
             //不为零说明不相等，不是空串。
             shared_ptr<Obj> obj[3] = {make_shared<Obj>(divide[i])};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpPrint, obj);
@@ -643,6 +645,21 @@ void IRcodeMaker::programFunc(shared_ptr<FuncDefAST> &funcDef) {
     NowLevel--;
 }
 
+void IRcodeMaker::programMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
+    string name = mainFunc->name;
+    defineType = INT;
+    NowLevel++;
+
+    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType), make_shared<Obj>(name)};
+    shared_ptr<IRcode> t = make_shared<IRcode>(OpFunc, decl);
+    IRCodeList.push_back(t); //int func()
+
+    shared_ptr<BlockAST> &block = mainFunc->block;
+    programBLock(block, true);
+
+    NowLevel--;
+}
+
 void IRcodeMaker::program() {
     vector<shared_ptr<DeclAST>> &decls = (compUnitAst->decls);
     for (int i = 0; i < decls.size(); ++i) {
@@ -652,12 +669,11 @@ void IRcodeMaker::program() {
     for (int i = 0; i < funcs.size(); ++i) {
         programFunc(funcs[i]);
     }
-//    ADD_MIDCODE(OpJMain, "", "", "");
 
-//    if (compUnitAst->main != nullptr) {
-//        shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
-//        handleMainDef(mainFunc);
-//    }
+    if (compUnitAst->main != nullptr) {
+        shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
+        programMainDef(mainFunc);
+    }
     return;
 }
 
