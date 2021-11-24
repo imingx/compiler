@@ -7,19 +7,100 @@
 
 #include<bits/stdc++.h>
 #include "AST.h"
-#include "SymbolTable.h"
 
 using namespace std;
 
+
 class IRcode;
+class VarSym;
+class Obj;
+class SymTable;
+struct StringData;
 
 extern vector<shared_ptr<IRcode>> IRCodeList;
+extern SymTable symTable;
+extern vector<StringData> stringData;
+
+struct StringData{
+    string label;
+    string content;
+};
+
+class FuncSym {
+public:
+    string name;
+    int paraNum;
+    SymbolType returnType;
+    vector<shared_ptr<VarSym>> exps;
+
+    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> & exps, SymbolType returnType) {
+        this->name = name;
+        this->paraNum = paraNum;
+        this->exps = exps;
+        this->returnType = returnType;
+    }
+
+    FuncSym(string name, SymbolType type){
+        this->name = name;
+        this->returnType = type;
+        this->paraNum = 0;
+    }
+};
+
+class VarSym {
+public:
+    string name;
+    int dim;
+    SymbolType type;
+    int level;
+    vector<shared_ptr<Obj>> exps; //int a[exp][exp]
+    shared_ptr<Obj> value;   //int a = 10;
+
+    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level) {
+        this->name = name;
+        this->dim = dim;
+        this->type = type;
+        this->exps = exps;
+        this->level = level;
+    }
+
+    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level, shared_ptr<Obj> &value) {
+        this->name = name;
+        this->dim = dim;
+        this->type = type;
+        this->exps = exps;
+        this->level = level;
+        this->value = value;
+    }
+
+    VarSym(string name, int dim, SymbolType type, int level, shared_ptr<Obj> &value) {
+        this->name = name;
+        this->dim = dim;
+        this->type = type;
+        this->level = level;
+        this->value = value;
+    }
+
+    VarSym(string name, int dim, SymbolType type, int level) {
+        this->name = name;
+        this->dim = dim;
+        this->type = type;
+        this->level = level;
+    }
+};
+
+class SymTable {
+public:
+    vector<shared_ptr<VarSym>> Var;
+    vector<shared_ptr<FuncSym>> Func;
+};
 
 class Obj {
 public:
     int branch;
     //0 is nothing
-    //1 is type(int)
+    //1 is type(int), void, arr
+        //if arr, str[][tx]
     //2 is str
     //3 is str[tx]
     //4 is str[1]  str[num]
@@ -28,6 +109,8 @@ public:
     string index;
     SymbolType type;
     int num;
+//    shared_ptr<VarSym>;
+//    shared_ptr<FuncSym>;
 
     string p();
 
@@ -53,7 +136,7 @@ public:
         this->num = num;
     }
 
-    Obj(string str, shared_ptr<Obj> &obj) {
+    Obj(string str, shared_ptr <Obj> &obj) {
         if (obj->branch == 2) {
             this->branch = 3;
             this->index = obj->str;
@@ -131,7 +214,7 @@ public:
 
     void programFunc(shared_ptr<FuncDefAST> &funcDef);
 
-    void programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam);
+    void programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<shared_ptr<VarSym>> &exps);
 
     void programBlockItem(shared_ptr<BlockItemAST> &blockItem);
 
@@ -151,9 +234,9 @@ public:
 
     shared_ptr<Obj> programConstExp(shared_ptr<ConstExpAST> &constExp);
 
-    void programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,  shared_ptr<Obj> obj[3] , int * count);
+    void programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal, shared_ptr<Obj> obj[3], int *count);
 
-    void programInitVal(shared_ptr<InitValAST> &initVal,  shared_ptr<Obj> obj[3], int * count);
+    void programInitVal(shared_ptr<InitValAST> &initVal, shared_ptr<Obj> obj[3], int *count);
 
     shared_ptr<Obj> programAddExp(shared_ptr<AddExpAST> &addExp);
 

@@ -8,12 +8,12 @@
 #include <bits/stdc++.h>
 #include "type.h"
 #include "AST.h"
-#include "SymbolTable.h"
+#include "OldSymbolTable.h"
 
 using namespace std;
 
 extern vector<PIS> errors;
-extern SymbolTable symbolTable;
+extern OldSymbolTable symbolTable;
 
 class ErrorHandler {
 private:
@@ -50,7 +50,7 @@ public:
 
     void handleFunc(shared_ptr<FuncDefAST> &funcDef);
 
-    void handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<VarSym> &parameters);
+    void handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<OldVarSym> &parameters);
 
     void handleBlockItem(shared_ptr<BlockItemAST> &blockItem);
 

@@ -5,8 +5,10 @@
 #include "include/IRcode.h"
 
 int var_offset; //偏移量，.data
-SymbolType defineType;
+stack<SymbolType> defineType;
 vector<shared_ptr<IRcode>> IRCodeList;
+SymTable symTable;
+vector<StringData> stringData;
 
 void IRcodeMaker::print() {
     for (int i = 0; i < IRCodeList.size(); ++i) {
@@ -79,6 +81,9 @@ void IRcode::print() {
         case OpPrintInt:
             cout << operatorString[op] << " " << obj[0]->p() << endl;
             break;
+        case OpExit:
+            cout << operatorString[op] << endl;
+            break;
     }
 }
 
@@ -138,18 +143,18 @@ void IRcodeMaker::programConstDef(shared_ptr<ConstDefAST> &constDef) {
     string identName = constDef->name; // 名字
     int dimension = constDef->constExps.size(); //维度
     vector<shared_ptr<ConstExpAST>> &constExps = constDef->constExps;
-
-    for (int i = 0; i < constExps.size(); ++i) {
-        programConstExp(constExps[i]);
-    }
-
     //插入符号表
     shared_ptr<Obj> before;
     shared_ptr<Obj> now;
 
+    vector<shared_ptr<Obj>> exps;
+
     for (int i = 0; i < constExps.size(); ++i) {
         before = now;
         now = programConstExp(constExps[i]);
+
+        exps.push_back(now);
+
         if (i != 0) {
             shared_ptr<Obj> obj[3];
             obj[0] = newtemp();
@@ -163,13 +168,13 @@ void IRcodeMaker::programConstDef(shared_ptr<ConstDefAST> &constDef) {
     int count = 0;
     if (constExps.empty()) {
         //a
-        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                   make_shared<Obj>(identName)};
         programConstInitVal(constDef->constInitVal, obj, &count);
 
     } else {
         //a[];
-        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                   make_shared<Obj>(identName, now)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpArray, obj);
         IRCodeList.push_back(t);
@@ -177,47 +182,87 @@ void IRcodeMaker::programConstDef(shared_ptr<ConstDefAST> &constDef) {
     }
 
 // 插入符号表？
+    shared_ptr<VarSym> var;
+    if (constExps.empty()) {
+        var = make_shared<VarSym>(identName, dimension, defineType.top(), NowLevel);
+    } else {
+        var = make_shared<VarSym>(identName, dimension, exps, defineType.top(), NowLevel);
+    }
+
+    symTable.Var.push_back(var);
 }
 
 void IRcodeMaker::programConstDecl(shared_ptr<ConstDeclAST> &constDecl) {
     if (constDecl->btype->category == INTTK) {
-        defineType = INT;
+        defineType.push(INT);
     }
     for (int i = 0; i < constDecl->constdefs.size(); ++i) {
         programConstDef(constDecl->constdefs[i]);
     }
+    defineType.pop();
 }
 
 shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
     string varName = lVal->name;
     vector<shared_ptr<ExpAST>> &exps = lVal->exps;
 
-    shared_ptr<Obj> before;
-    shared_ptr<Obj> now;
-    for (int i = 0; i < exps.size(); ++i) {
-        before = now;
-        now = programExp(exps[i]);
-        if (i != 0) {
-            shared_ptr<Obj> obj[3];
-            obj[0] = newtemp();
-            obj[1] = before;
-            obj[2] = now;
-            now = obj[0];
-            shared_ptr<IRcode> t = make_shared<IRcode>(OpMULT, obj);
-            IRCodeList.push_back(t);
+    shared_ptr<VarSym> var;
+
+    for (int i = symTable.Var.size() - 1; i >= 0; --i) {
+        if (symTable.Var[i]->name.compare(varName) == 0) {
+            var = symTable.Var[i];
+            break;
         }
+    }
+
+
+    vector<shared_ptr<Obj>> &defineExps = var->exps;
+
+    vector<shared_ptr<Obj>> nowExps;
+    for (int i = 0; i < exps.size(); ++i) {
+        shared_ptr<Obj> now = programExp(exps[i]);
+        nowExps.push_back(now);
     }
 
     if (exps.empty()) {
         shared_ptr<Obj> obj = make_shared<Obj>(varName);
         return obj;
     } else {
-//        shared_ptr<Obj> obj[3];
-//        obj[0] = newtemp();
-//        obj[1] = make_shared<Obj>(varName, now);
-//        shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-//        IRCodeList.push_back(t);
-        shared_ptr<Obj> obj = make_shared<Obj>(varName, now);
+
+        shared_ptr<Obj> old;
+        shared_ptr<Obj> now;
+
+        if (nowExps.size() == 1) {
+            now = nowExps[0];
+            shared_ptr<Obj> obj = make_shared<Obj>(varName, now);
+            return obj;
+        }
+
+        for (int i = 0; i < nowExps.size(); ++i) {
+            if (i != nowExps.size() - 1) {
+                shared_ptr<Obj> mult = nowExps[i];
+                for (int j = i + 1; j < nowExps.size(); j++) {
+                    shared_ptr<Obj> obj[3] = {newtemp(), mult, defineExps[j]};
+                    shared_ptr<IRcode> t = make_shared<IRcode>(OpMULT, obj);
+                    IRCodeList.push_back(t);
+                    mult = obj[0];
+                }
+                old = now;
+                now = mult;
+            } else {
+                old = now;
+                now = nowExps[i];
+            }
+
+            if (i != 0) {
+                shared_ptr<Obj> obj[3] = {newtemp(), old, now};
+                shared_ptr<IRcode> t = make_shared<IRcode>(OpPLUS, obj);
+                IRCodeList.push_back(t);
+                old = obj[0];
+            }
+        }
+
+        shared_ptr<Obj> obj = make_shared<Obj>(varName, old);
         return obj;
     }
 }
@@ -380,11 +425,16 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
     int dimension = varDef->constExps.size(); //标识符的维度
     vector<shared_ptr<ConstExpAST>> &constExps = varDef->constExps;
 
+    vector<shared_ptr<Obj>> exps;
+
     shared_ptr<Obj> before;
     shared_ptr<Obj> now;
     for (int i = 0; i < constExps.size(); ++i) {
         before = now;
         now = programConstExp(constExps[i]);
+
+        exps.push_back(now);
+
         if (i != 0) {
             shared_ptr<Obj> obj[3];
             obj[0] = newtemp();
@@ -396,16 +446,17 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
         }
     }
 
+
     if (varDef->initVal != nullptr) {
         int count = 0;
         if (constExps.empty()) {
             //var int a = 1;
-            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                       make_shared<Obj>(identName)};
             programInitVal(varDef->initVal, obj, &count);
 
         } else {
-            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                       make_shared<Obj>(identName, now)};
 
             shared_ptr<IRcode> t = make_shared<IRcode>(OpArray, obj);
@@ -421,28 +472,38 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
         //var int j[1][2];
         if (constExps.empty()) {
             //不是数组
-            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                       make_shared<Obj>(identName)};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpVar, obj);
             IRCodeList.push_back(t);
         } else {
             //是数组
-            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType),
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                       make_shared<Obj>(identName, now)};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpArray, obj);
             IRCodeList.push_back(t);
         }
     }
     //插入符号表
+
+    shared_ptr<VarSym> var;
+    if (constExps.empty()) {
+        var = make_shared<VarSym>(identName, dimension, defineType.top(), NowLevel);
+    } else {
+        var = make_shared<VarSym>(identName, dimension, exps, defineType.top(), NowLevel);
+    }
+
+    symTable.Var.push_back(var);
 }
 
 void IRcodeMaker::programVarDecl(shared_ptr<VarDeclAST> &varDecl) {
     if (varDecl->btype->category == INTTK) {
-        defineType = INT;
+        defineType.push(INT);
     }
     for (int i = 0; i < varDecl->varDefs.size(); ++i) {
         programVarDef(varDecl->varDefs[i]);
     }
+    defineType.pop();
 }
 
 void IRcodeMaker::programDecl(shared_ptr<DeclAST> &decl) {
@@ -456,32 +517,45 @@ void IRcodeMaker::programDecl(shared_ptr<DeclAST> &decl) {
     }
 }
 
-void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam) {
+void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<shared_ptr<VarSym>> &exps) {
     string name = funcFParam->name;
+    int dimension = funcFParam->constExps.size();
+
     if (funcFParam->bType->category == INTTK)
-        defineType = INT;
+        defineType.push(INT);
     vector<shared_ptr<ConstExpAST>> &constExps = funcFParam->constExps;
 
     if (constExps.empty()) {
         //para int a
-        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType), make_shared<Obj>(name)};
+        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, obj);
         IRCodeList.push_back(t);
+
+        shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, defineType.top(), NowLevel);
+        exps.push_back(var);
     } else {
         //para int b[][12];
-        shared_ptr<Obj> obj[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType)};
+        vector<shared_ptr<Obj>> arrExps; //这是数组的每层的大小
+
+        shared_ptr<Obj> obj[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType.top())};
         if (constExps.size() == 1) {
             obj[2] = make_shared<Obj>(name, 0x3f3f3f3f);
             shared_ptr<IRcode> t = make_shared<IRcode>(OpParaArr, obj);
             IRCodeList.push_back(t);
+
+            arrExps.push_back(make_shared<Obj>(0x3f3f3f3f));
+            shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, arrExps, defineType.top(), NowLevel);
+            exps.push_back(var);
             return;
         }
+        arrExps.push_back(make_shared<Obj>(0x3f3f3f3f));
 
         shared_ptr<Obj> before;
         shared_ptr<Obj> now;
         for (int i = 1; i < constExps.size(); ++i) {
             before = now;
             now = programConstExp(constExps[i]);
+            arrExps.push_back(now);
             if (i != 1) {
                 shared_ptr<Obj> obj[3];
                 obj[0] = newtemp();
@@ -493,11 +567,15 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam) {
             }
         }
         now->type = ARR;
-        shared_ptr<Obj> ooo[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType),
+        shared_ptr<Obj> ooo[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType.top()),
                                   make_shared<Obj>(name, now)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpParaArr, ooo);
         IRCodeList.push_back(t);
+
+        shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, arrExps, defineType.top(), NowLevel);
     }
+
+    defineType.pop();
 }
 
 void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
@@ -562,6 +640,7 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
 }
 
 void IRcodeMaker::programPrintf(const string &formatString, vector<shared_ptr<ExpAST>> exps) {
+    static int printLabel = -1;
 
     vector<shared_ptr<Obj>> out;
     for (int i = 0; i < exps.size(); ++i) {
@@ -585,7 +664,13 @@ void IRcodeMaker::programPrintf(const string &formatString, vector<shared_ptr<Ex
         //输出字符串
         if (divide[i].compare("")) {
             //不为零说明不相等，不是空串。
-            shared_ptr<Obj> obj[3] = {make_shared<Obj>(divide[i])};
+            StringData data;
+            data.content = divide[i];
+            data.label = "strlabel" + to_string(++printLabel);
+
+            stringData.push_back(data);
+
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(data.label)};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpPrint, obj);
             IRCodeList.push_back(t);
         }
@@ -615,42 +700,59 @@ void IRcodeMaker::programBLock(shared_ptr<BlockAST> &block, bool isfunc) {
         programBlockItem(blockItems[i]);
     }
 
+    for (auto i = symTable.Var.begin(); i != symTable.Var.end(); ++i) {
+        if ((*i)->level == NowLevel) {
+            symTable.Var.erase(i);
+            --i;
+        }
+    }
 }
 
 
 void IRcodeMaker::programFunc(shared_ptr<FuncDefAST> &funcDef) {
     string funcName = funcDef->name;
     if (funcDef->funcType->category == INTTK) {
-        defineType = INT;
+        defineType.push(INT);
     } else if (funcDef->funcType->category == VOIDTK) {
-        defineType = VOID;
+        defineType.push(VOID);
     }
     NowLevel++;
     shared_ptr<FuncFParamsAST> &funcFParams = funcDef->funcFParams;
 
-    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType), make_shared<Obj>(funcName)};
+    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(funcName)};
     shared_ptr<IRcode> t = make_shared<IRcode>(OpFunc, decl);
     IRCodeList.push_back(t); //int func()
 
+
     //param:
     if (funcFParams != nullptr) {
+        int paraNum = funcFParams->funcFParams.size();
+        vector<shared_ptr<VarSym>> exps;
+
         for (int i = 0; i < funcFParams->funcFParams.size(); ++i) {
-            programFuncFParam(funcFParams->funcFParams[i]);
+            programFuncFParam(funcFParams->funcFParams[i], exps);
         }
+
+        shared_ptr<FuncSym> func = make_shared<FuncSym>(funcName, paraNum, exps, defineType.top());
+        symTable.Func.push_back(func);
+    } else {
+        shared_ptr<FuncSym> func = make_shared<FuncSym>(funcName, defineType.top());
+        symTable.Func.push_back(func);
     }
 
     shared_ptr<BlockAST> &block = funcDef->block;
     programBLock(block, true);
 
     NowLevel--;
+    defineType.pop();
 }
 
 void IRcodeMaker::programMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
     string name = mainFunc->name;
-    defineType = INT;
+    defineType.push(INT);
     NowLevel++;
 
-    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType), make_shared<Obj>(name)};
+    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name)};
     shared_ptr<IRcode> t = make_shared<IRcode>(OpFunc, decl);
     IRCodeList.push_back(t); //int func()
 
@@ -658,6 +760,7 @@ void IRcodeMaker::programMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
     programBLock(block, true);
 
     NowLevel--;
+    defineType.pop();
 }
 
 void IRcodeMaker::program() {
@@ -674,6 +777,10 @@ void IRcodeMaker::program() {
         shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
         programMainDef(mainFunc);
     }
+
+    shared_ptr<Obj> decl[3];
+    shared_ptr<IRcode> t = make_shared<IRcode>(OpExit, decl);
+    IRCodeList.push_back(t);
     return;
 }
 
@@ -681,7 +788,7 @@ void IRcodeMaker::program() {
 shared_ptr<Obj> IRcodeMaker::newtemp() {
     static int count = -1;
     count++;
-    string temp = "t" + to_string(count);
+    string temp = "mi" + to_string(count);
     shared_ptr<Obj> obj = make_shared<Obj>(temp);
     return obj;
 }

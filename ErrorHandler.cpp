@@ -5,7 +5,7 @@
 #include "include/ErrorHandler.h"
 
 vector<PIS> errors;
-SymbolTable symbolTable;
+OldSymbolTable symbolTable;
 
 void ErrorHandler::handleVarDef(shared_ptr<VarDefAST> &varDef) {
     string identName = varDef->name;
@@ -33,7 +33,7 @@ void ErrorHandler::handleVarDef(shared_ptr<VarDefAST> &varDef) {
         handleInitVal(varDef->initVal);
     }
 
-    VarSym t(identName, CurLevel, dimension, CurType.top(), false);
+    OldVarSym t(identName, CurLevel, dimension, CurType.top(), false);
     symbolTable.Var.push_back(t);
 }
 
@@ -91,7 +91,7 @@ int ErrorHandler::handleUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) {
                 }
             }
             if (flag) {
-                FuncSym t = symbolTable.Func[index];
+                OldFuncSym t = symbolTable.Func[index];
                 int parameterNum = t.parameterNum;
                 int nowParameterNum = 0;
                 if (unaryExp->funcRParams != nullptr) {
@@ -242,7 +242,7 @@ void ErrorHandler::handleConstDef(shared_ptr<ConstDefAST> &constDef) {
 
     handleConstINitVal(constDef->constInitVal);
 
-    ConSym t(identName, CurLevel, dimension, CurType.top(), true);
+    OldConSym t(identName, CurLevel, dimension, CurType.top(), true);
     symbolTable.Con.push_back(t);
 }
 
@@ -273,7 +273,7 @@ void ErrorHandler::handleDecl(shared_ptr<DeclAST> &decl) {
     }
 }
 
-void ErrorHandler::handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<VarSym> &parameters) {
+void ErrorHandler::handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vector<OldVarSym> &parameters) {
     CurType.push(funcFParam->bType->category);
     string paramName = funcFParam->name;
     int line = funcFParam->line;
@@ -295,7 +295,7 @@ void ErrorHandler::handleFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
         }
     }
 
-    VarSym t(paramName, CurLevel, dimension, CurType.top(), false);
+    OldVarSym t(paramName, CurLevel, dimension, CurType.top(), false);
     symbolTable.Var.push_back(t);
     parameters.push_back(t);
     CurType.pop();
@@ -541,7 +541,7 @@ void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
     }
     CurLevel++;
 
-    vector<VarSym> parameters;
+    vector<OldVarSym> parameters;
     shared_ptr<FuncFParamsAST> &funcFParams = funcDef->funcFParams;
     int parameterNum = 0;
     if (funcFParams != nullptr) {
@@ -552,7 +552,7 @@ void ErrorHandler::handleFunc(shared_ptr<FuncDefAST> &funcDef) {
     }
 
 
-    FuncSym t(funcName, parameterNum, parameters, CurType.top());
+    OldFuncSym t(funcName, parameterNum, parameters, CurType.top());
     symbolTable.Func.push_back(t);
 
     shared_ptr<BlockAST> &block = funcDef->block;
@@ -582,8 +582,8 @@ void ErrorHandler::handleMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
     shared_ptr<BlockAST> &block = mainFunc->block;
     handleBLock(block, true);
 
-    vector<VarSym> parameters;
-    FuncSym t(name, 0, parameters, CurType.top());
+    vector<OldVarSym> parameters;
+    OldFuncSym t(name, 0, parameters, CurType.top());
     symbolTable.Func.push_back(t);
     CurLevel--;
     CurType.pop();

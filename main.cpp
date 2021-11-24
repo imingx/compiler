@@ -8,7 +8,7 @@ using namespace std;
 
     set(CMAKE_CXX_STANDARD 11)
 
-    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h AST.cpp include/AST.h SymbolTable.cpp include/SymbolTable.h include/TYPE.h ErrorHandler.cpp include/ErrorHandler.h)
+    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h include/AST.h include/OldSymbolTable.h include/type.h ErrorHandler.cpp include/ErrorHandler.h IRcode.cpp include/IRcode.h)
  */
 
 int main() {
@@ -26,7 +26,7 @@ int main() {
     // error handling
     ErrorHandler errorHandler(ERROR, AST);
     errorHandler.program();
-    errorHandler.print(); // error print
+//    errorHandler.print(); // error print
 
     // Above is frontend
     // --------------------------------------------
@@ -36,6 +36,8 @@ int main() {
     iRcodeMaker.program();
     iRcodeMaker.print();
 
+    Mips mips(MIPS);
+    mips.program();
 
     return 0;
 }
