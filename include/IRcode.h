@@ -12,16 +12,20 @@ using namespace std;
 
 
 class IRcode;
+
 class VarSym;
+
 class Obj;
+
 class SymTable;
+
 struct StringData;
 
 extern vector<shared_ptr<IRcode>> IRCodeList;
 extern SymTable symTable;
 extern vector<StringData> stringData;
 
-struct StringData{
+struct StringData {
     string label;
     string content;
 };
@@ -33,14 +37,14 @@ public:
     SymbolType returnType;
     vector<shared_ptr<VarSym>> exps;
 
-    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> & exps, SymbolType returnType) {
+    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> &exps, SymbolType returnType) {
         this->name = name;
         this->paraNum = paraNum;
         this->exps = exps;
         this->returnType = returnType;
     }
 
-    FuncSym(string name, SymbolType type){
+    FuncSym(string name, SymbolType type) {
         this->name = name;
         this->returnType = type;
         this->paraNum = 0;
@@ -55,6 +59,17 @@ public:
     int level;
     vector<shared_ptr<Obj>> exps; //int a[exp][exp]
     shared_ptr<Obj> value;   //int a = 10;
+    int offset;
+    int needSpace;
+
+    void setValue(shared_ptr<Obj> value) {
+        this->value = value;
+    }
+
+    void setOffsetAndNeedSpace(int offset, int needSpace) {
+        this->offset = offset;
+        this->needSpace = needSpace;
+    }
 
     VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level) {
         this->name = name;
@@ -100,7 +115,7 @@ public:
     int branch;
     //0 is nothing
     //1 is type(int), void, arr
-        //if arr, str[][tx]
+    //if arr, str[][tx]
     //2 is str
     //3 is str[tx]
     //4 is str[1]  str[num]
@@ -109,10 +124,18 @@ public:
     string index;
     SymbolType type;
     int num;
-//    shared_ptr<VarSym>;
-//    shared_ptr<FuncSym>;
+    shared_ptr<VarSym> var;
+    shared_ptr<FuncSym> func;
 
     string p();
+
+    void setVar(shared_ptr<VarSym> &var) {
+        this->var = var;
+    }
+
+    void setFunc(shared_ptr<FuncSym> &func) {
+        this->func = func;
+    }
 
     Obj(SymbolType type) {
         this->branch = 1;
@@ -122,6 +145,18 @@ public:
     Obj(string str) {
         this->branch = 2;
         this->str = str;
+    }
+
+    Obj(string str, shared_ptr<VarSym> &var) {
+        this->branch = 2;
+        this->str = str;
+        this->var = var;
+    }
+
+    Obj(string str, shared_ptr<FuncSym> &func) {
+        this->branch = 2;
+        this->str = str;
+        this->func = func;
     }
 
     Obj(string str, string index) {
@@ -136,7 +171,31 @@ public:
         this->num = num;
     }
 
-    Obj(string str, shared_ptr <Obj> &obj) {
+    Obj(string str, shared_ptr<Obj> &obj) {
+        if (obj->branch == 2) {
+            this->branch = 3;
+            this->index = obj->str;
+        } else if (obj->branch == 5) {
+            this->branch = 4;
+            this->num = obj->num;
+        }
+        this->str = str;
+        if (obj->type == ARR) {
+            this->type = ARR;
+        }
+    }
+
+    Obj(string str, int num, shared_ptr<VarSym> &var) {
+        //para int a[1]
+        this->var = var;
+        this->branch = 4;
+        this->num = num;
+        this->str = str;
+        this->type = ARR;
+    }
+
+    Obj(string str, shared_ptr<Obj> &obj, shared_ptr<VarSym> &var) {
+        this->var = var;
         if (obj->branch == 2) {
             this->branch = 3;
             this->index = obj->str;

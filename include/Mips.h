@@ -17,10 +17,14 @@ extern vector<StringData> stringData;
 
 class Mips {
 private:
-    FILE * out;
-    void loadValue(string reg, int &value, shared_ptr<Obj> &obj);
+    FILE *out;
+
+    void loadValue(shared_ptr<Obj> &obj, string reg, int &value, bool &isNum, bool useful);
+
+    void saveValue(shared_ptr<Obj> &obj, string reg);
+
 public:
-    Mips(const char * out);
+    Mips(const char *out);
 
     void program();
 };
