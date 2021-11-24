@@ -10,6 +10,14 @@ vector<shared_ptr<IRcode>> IRCodeList;
 SymTable symTable;
 vector<StringData> stringData;
 
+bool isMain;
+
+IRcodeMaker::IRcodeMaker(shared_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
+    var_offset = 0;
+    NowLevel = 0;
+    isMain = false;
+}
+
 void IRcodeMaker::print() {
     for (int i = 0; i < IRCodeList.size(); ++i) {
         IRCodeList[i]->print();
@@ -84,6 +92,9 @@ void IRcode::print() {
         case OpExit:
             cout << operatorString[op] << endl;
             break;
+        case OpJMain:
+            cout << operatorString[op] << endl;
+            break;
     }
 }
 
@@ -111,10 +122,6 @@ string Obj::p() {
     return "";
 }
 
-IRcodeMaker::IRcodeMaker(shared_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
-    var_offset = 0;
-    NowLevel = 0;
-}
 
 void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal, shared_ptr<Obj> obj[3], int *count) {
     if (obj[1]->branch == 2) {
@@ -257,7 +264,6 @@ shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
             obj->num = var->value->num;
         return obj;
     } else {
-
         shared_ptr<Obj> old;
         shared_ptr<Obj> now;
 
@@ -344,12 +350,15 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
         case 2: {//函数调用
             string funcName = unaryExp->name; //函数名
             shared_ptr<FuncRParamsAST> funcRParams = unaryExp->funcRParams;
-            for (int i = 0; i < funcRParams->exps.size(); ++i) {
-                shared_ptr<Obj> ans = programExp(funcRParams->exps[i]);
-                shared_ptr<Obj> obj[3];
-                obj[0] = ans;
-                shared_ptr<IRcode> t = make_shared<IRcode>(OpPush, obj);
-                IRCodeList.push_back(t);
+
+            if (funcRParams != nullptr) {
+                for (int i = 0; i < funcRParams->exps.size(); ++i) {
+                    shared_ptr<Obj> ans = programExp(funcRParams->exps[i]);
+                    shared_ptr<Obj> obj[3];
+                    obj[0] = ans;
+                    shared_ptr<IRcode> t = make_shared<IRcode>(OpPush, obj);
+                    IRCodeList.push_back(t);
+                }
             }
 
             shared_ptr<FuncSym> func;
@@ -364,20 +373,27 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
             shared_ptr<IRcode> t = make_shared<IRcode>(OpCall, obj);
             IRCodeList.push_back(t);
 
-            shared_ptr<Obj> ret[3];
-            ret[0] = newtemp();
+            if (func->returnType != VOID) {
 
-            shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->str, 0, INT, NowLevel);
 
-            var->setOffsetAndNeedSpace(var_offset, 1);
-            var_offset += 1;
+                shared_ptr<Obj> ret[3];
+                ret[0] = newtemp();
 
-            obj[0]->setVar(var);
+                shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->str, 0, INT, NowLevel);
 
-            ret[1] = make_shared<Obj>("RET");
-            t = make_shared<IRcode>(OpAssign, ret);
-            IRCodeList.push_back(t);
-            return ret[0];
+                var->setOffsetAndNeedSpace(var_offset, 1);
+                var_offset += 1;
+
+                ret[0]->setVar(var);
+
+                ret[1] = make_shared<Obj>("RET");
+                t = make_shared<IRcode>(OpAssign, ret);
+                IRCodeList.push_back(t);
+                return ret[0];
+            } else {
+                //返回值为零
+                return make_shared<Obj>(0);
+            }
         }
         case 3: {// + - unaryExp
             shared_ptr<UnaryOpAST> unaryOp = unaryExp->unaryOp;
@@ -425,7 +441,16 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
         before = now;
         now = programUnaryExp(unaryExps[i]);
 
-        num *= now->num;
+        if (i == 0)
+            num *= now->num;
+        else {
+            if (symbol[i - 1] == MULT)
+                num += now->num;
+            else if (symbol[i - 1] == DIV)
+                num /= now->num;
+            else if (symbol[i - 1] == MOD)
+                num %= now->num;
+        }
 
         if (i != 0) {
             shared_ptr<Obj> obj[3];
@@ -466,7 +491,17 @@ shared_ptr<Obj> IRcodeMaker::programAddExp(shared_ptr<AddExpAST> &addExp) {
     for (int i = 0; i < mulExps.size(); ++i) {
         before = now;
         now = programMulExp(mulExps[i]);
-        num += now->num;
+
+
+        if (i == 0)
+            num += now->num;
+        else {
+            if (symbol[i - 1] == PLUS)
+                num += now->num;
+            else
+                num -= now->num;
+        }
+
         if (i != 0) {
             shared_ptr<Obj> obj[3];
             obj[0] = newtemp();
@@ -651,8 +686,13 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
         //para int a
 
         shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, defineType.top(), NowLevel);
+        symTable.Var.push_back(var);
         exps.push_back(var);
         //符号表
+
+        cout << var_offset << "!!" << endl;
+        var->setOffsetAndNeedSpace(var_offset, 1);
+        var_offset += 1;
 
         shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name, var)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, obj);
@@ -707,6 +747,7 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
 
         shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, arrExps, defineType.top(), NowLevel);
         exps.push_back(var);
+        symTable.Var.push_back(var);
 
         shared_ptr<Obj> ooo[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType.top()),
                                   make_shared<Obj>(name, now, var)};
@@ -729,8 +770,9 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
         }
             break;
         case 2: {//2 [exp];------------
-            if (stmt->expSingle != nullptr)
+            if (stmt->expSingle != nullptr) {
                 programExp(stmt->expSingle);
+            }
         }
             break;
         case 3: {  //3 block -----------
@@ -749,15 +791,21 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
         }
             break;
         case 7: { //7 return ----------------
-            if (stmt->expReturn == nullptr) {
-                shared_ptr<Obj> obj[3];
-                shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, obj);
+            if (isMain) {
+                shared_ptr<Obj> decl[3];
+                shared_ptr<IRcode> t = make_shared<IRcode>(OpExit, decl);
                 IRCodeList.push_back(t);
             } else {
-                shared_ptr<Obj> obj[3];
-                obj[0] = programExp(stmt->expReturn);
-                shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, obj);
-                IRCodeList.push_back(t);
+                if (stmt->expReturn == nullptr) {
+                    shared_ptr<Obj> obj[3];
+                    shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, obj);
+                    IRCodeList.push_back(t);
+                } else {
+                    shared_ptr<Obj> obj[3];
+                    obj[0] = programExp(stmt->expReturn);
+                    shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, obj);
+                    IRCodeList.push_back(t);
+                }
             }
         }
             break;
@@ -854,6 +902,25 @@ void IRcodeMaker::programBLock(shared_ptr<BlockAST> &block, bool isfunc) {
             --i;
         }
     }
+
+    shared_ptr<BlockItemAST> end = blockItems.back();
+
+    if (end->type == 0) {
+        if (isfunc) {
+            shared_ptr<Obj> decl[3];
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, decl);
+            IRCodeList.push_back(t);
+        }
+    } else {
+        shared_ptr<StmtAST> stmt = dynamic_pointer_cast<StmtAST>(end->item);
+
+        if (stmt->type != 7 && isfunc) {
+            //没有return.
+            shared_ptr<Obj> decl[3];
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpReturn, decl);
+            IRCodeList.push_back(t);
+        }
+    }
 }
 
 
@@ -874,14 +941,18 @@ void IRcodeMaker::programFunc(shared_ptr<FuncDefAST> &funcDef) {
         int paraNum = funcFParams->funcFParams.size();
         vector<shared_ptr<VarSym>> exps;
 
+        int tmp = var_offset;
+        var_offset = 0;
         for (int i = 0; i < funcFParams->funcFParams.size(); ++i) {
             programFuncFParam(funcFParams->funcFParams[i], exps);
         }
 
-        func = make_shared<FuncSym>(funcName, paraNum, exps, defineType.top());
+        func = make_shared<FuncSym>(funcName, paraNum, exps, defineType.top(), tmp);
+
         symTable.Func.push_back(func);
     } else {
-        func = make_shared<FuncSym>(funcName, defineType.top());
+        func = make_shared<FuncSym>(funcName, defineType.top(), var_offset);
+        var_offset = 0;
         symTable.Func.push_back(func);
     }
 
@@ -902,12 +973,17 @@ void IRcodeMaker::programMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
     defineType.push(INT);
     NowLevel++;
 
-    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name)};
+    shared_ptr<FuncSym> func = make_shared<FuncSym>(name, defineType.top(), var_offset);
+    var_offset = 0;
+    symTable.Func.push_back(func);
+
+    shared_ptr<Obj> decl[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name, func)};
     shared_ptr<IRcode> t = make_shared<IRcode>(OpFunc, decl);
     IRCodeList.push_back(t); //int main()
 
     shared_ptr<BlockAST> &block = mainFunc->block;
-    programBLock(block, true);
+    programBLock(block, false);
+
 
     NowLevel--;
     defineType.pop();
@@ -918,19 +994,24 @@ void IRcodeMaker::program() {
     for (int i = 0; i < decls.size(); ++i) {
         this->programDecl(decls[i]);
     }
+
+    shared_ptr<Obj> decl[3];
+    shared_ptr<IRcode> t = make_shared<IRcode>(OpJMain, decl);
+    IRCodeList.push_back(t); //j main();
+
     vector<shared_ptr<FuncDefAST>> &funcs = compUnitAst->funcs;
     for (int i = 0; i < funcs.size(); ++i) {
         programFunc(funcs[i]);
     }
 
+    isMain = true;
     if (compUnitAst->main != nullptr) {
         shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
         programMainDef(mainFunc);
     }
+    isMain = false;
 
-    shared_ptr<Obj> decl[3];
-    shared_ptr<IRcode> t = make_shared<IRcode>(OpExit, decl);
-    IRCodeList.push_back(t);
+
     return;
 }
 

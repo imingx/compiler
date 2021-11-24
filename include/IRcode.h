@@ -36,18 +36,21 @@ public:
     int paraNum;
     SymbolType returnType;
     vector<shared_ptr<VarSym>> exps;
+    int offset;
 
-    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> &exps, SymbolType returnType) {
+    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> &exps, SymbolType returnType, int offset) {
         this->name = name;
         this->paraNum = paraNum;
         this->exps = exps;
         this->returnType = returnType;
+        this->offset = offset;
     }
 
-    FuncSym(string name, SymbolType type) {
+    FuncSym(string name, SymbolType type, int offset) {
         this->name = name;
         this->returnType = type;
         this->paraNum = 0;
+        this->offset = offset;
     }
 };
 
@@ -115,7 +118,7 @@ public:
     int branch;
     //0 is nothing
     //1 is type(int), void, arr
-    //if arr, str[][tx]
+        //if arr, str[][tx]
     //2 is str
     //3 is str[tx]
     //4 is str[1]  str[num]
