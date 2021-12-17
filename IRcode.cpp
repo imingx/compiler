@@ -732,7 +732,7 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
     }
 
     var_offset += needSpace;
-    if (NowLevel == 0 || needSpace != 1) {
+    if (NowLevel == 0 || dimension != 0) {
         global_offset += needSpace;
         var->setOffsetAndNeedSpace(global_offset, needSpace);
         var->level = 0;
@@ -1292,7 +1292,7 @@ void IRcodeMaker::programBLock(shared_ptr<BlockAST> &block, bool isfunc) {
     }
 
     for (auto i = symTable.Var.begin(); i != symTable.Var.end(); ++i) {
-        if ((*i)->level == NowLevel) {
+        if ((*i)->level == NowLevel || (*i)->originLevel == NowLevel) {
             symTable.Var.erase(i);
             --i;
         }

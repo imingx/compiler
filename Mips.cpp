@@ -21,6 +21,7 @@ void Mips::saveValue(shared_ptr<Obj> &obj, string reg) {
         //sw,一维数组,二维数组
         int address = var->level == 0 ? (var->offset) * 4 : -(var->offset) * 4;
         string preg = var->level == 0 ? "$gp" : "$fp";
+        if (!var->isConst) {}
         if (obj->branch == 3) {
             //n[x]
             shared_ptr<Obj> index = obj->index;

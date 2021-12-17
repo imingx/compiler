@@ -64,6 +64,7 @@ public:
     int dim;            //变量维度
     SymbolType type;    //变量类型
     int level;          //所处层级
+    int originLevel;  //我由于设置非常量数组都是全局，而符号表需要删去一些东西，所以需要记一下。
     vector<int> exps;   //每一层的值   int a[2][3];
     //    vector<shared_ptr<Obj>> exps; //每一个表达式。int a[exp][exp]
     shared_ptr<Obj> value;      //int a = 10;
@@ -96,7 +97,7 @@ public:
         this->dim = dim;
         this->type = type;
         this->exps = exps;
-        this->level = level;
+        this->originLevel = this->level = level;
         int len = 1;
         for (int i = 0; i < exps.size(); ++i) {
             len *= exps[i];
@@ -119,7 +120,7 @@ public:
         this->name = name;
         this->dim = dim;
         this->type = type;
-        this->level = level;
+        this->originLevel = this->level = level;
         this->value = value;
         isArrParam = false;
     }
@@ -129,7 +130,7 @@ public:
         this->name = name;
         this->dim = dim;
         this->type = type;
-        this->level = level;
+        this->originLevel = this->level = level;
         this->value = make_shared<Obj>(0);
         isArrParam = false;
     }
