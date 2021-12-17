@@ -844,7 +844,7 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
         exps.push_back(var);
         //符号表
         var_offset += 1;
-        var->setOffsetAndNeedSpace(var_offset, 3);
+        var->setOffsetAndNeedSpace(var_offset, 1);
 
         shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name, var)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, obj);
@@ -859,7 +859,7 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
         exps.push_back(var);
 
         var_offset += 1;
-        var->setOffsetAndNeedSpace(var_offset, 3);
+        var->setOffsetAndNeedSpace(var_offset, 1);
 
         shared_ptr<Obj> objs[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name, var)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, objs);

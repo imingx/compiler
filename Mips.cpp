@@ -185,7 +185,14 @@ void Mips::program() {
                 if (var != nullptr && var->dim != 0 &&
                     (var->dim == exps[size - 1]->dim || (var->dim == 2 && exps[size - 1]->dim == 1))) {
                     //传入数组参数。
-                    if (exps[size - 1]->dim == 1 && var->dim == 1) {
+                    if (var->isArrParam) {
+                        //发现是自调用传参
+                        // int func(int a[]) {func(a);}
+                        string preg = "$fp";
+                        int address = -(var->offset) * 4;
+                        fprintf(out, "lw $t0, %d(%s)\n", address, preg.c_str());
+                        fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
+                    } else if (exps[size - 1]->dim == 1 && var->dim == 1) {
                         //一维传一维
                         exps[size - 1]->offset = var->offset;
                         fprintf(out, "li $t0, %d\n", exps[size - 1]->offset * 4);
@@ -215,7 +222,6 @@ void Mips::program() {
                         fprintf(out, "li $t0, %d\n", exps[size - 1]->offset * 4);
                         fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
                     }
-
                 } else {
                     loadValue(param, "$t0", value1, isNum1, true);
                     fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
