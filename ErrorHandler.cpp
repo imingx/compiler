@@ -311,16 +311,21 @@ int ErrorHandler::handleLVal(shared_ptr<LValAST> &lVal, bool &ans) {
     bool isCon = false;
 
     int i, j;
+    int level = -1;
     for (i = symbolTable.Var.size() - 1; i >= 0; --i) {
         if (symbolTable.Var[i].name == name) {
             flag = true;
+            level = symbolTable.Var[i].level;
             break;
         }
     }
     for (j = symbolTable.Con.size() - 1; j >= 0; --j) {
         if (symbolTable.Con[j].name == name) {
-            flag = true;
-            isCon = true;
+            if (symbolTable.Con[j].level > level) {
+                flag = true;
+                isCon = true;
+                level = symbolTable.Con[j].level;
+            }
             break;
         }
     }
