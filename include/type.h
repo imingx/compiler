@@ -25,32 +25,32 @@ typedef pair<int, string> PIS;
 //}
 
 //rule name
-enum RULE_CATEGORY {
-    PROGRAM, COMPUNIT, DECL, CONSTDECL, BTYPE, CONSTDEF, CONSTINITVAL,
-    VARDECL, VARDEF, INITVAL, FUNCDEF, FUNCTYPE, FUNCFPARAMS,
-    FUNCFPARAM, BLOCK, BLOCKITEM, STMT, ASSIGNSTMT, EXPSTMT,
-    CONDITIONSTMT, WHILESTMT, BREAKSTMT, CONTINUESTMT, RETURNSTMT,
-    EXP, COND, LVAL, PRIMARYEXP, NUMBER, INTCONST, UNARYEXP,
-    CALLEE, UNARYOP, FUNCRPARAMS, PARAM, MULEXP, MULOP, ADDEXP,
-    ADDOP, RELEXP, RELOP, EQEXP, EQOP, LANDEXP, LOREXP, CONSTEXP
-};
-
-static const int RULE_NUM = 100;
-
-static const char *ruleNames[RULE_NUM] = {"<Program>", "<CompUnit>", "<Decl>", "<ConstDecl>", "<BType>", "<ConstDef>",
-                                          "<ConstInitVal>",
-                                          "<VarDecl>", "<VarDef>", "<InitVal>", "<FuncDef>", "<FuncType>",
-                                          "<FuncFParamsAST>",
-                                          "<FuncFParam>", "<BlockAST>", "<BlockItem>", "<Stmt>", "<AssignStmt>",
-                                          "<ExpStmt>",
-                                          "<ConditionStmt>", "<WhileStmt>", "<BreakStmt>", "<ContinueStmt>",
-                                          "<ReturnStmt>",
-                                          "<Exp>", "<Cond>", "<LVal>", "<PrimaryExp>", "<Number>", "<IntConst>",
-                                          "<UnaryExp>",
-                                          "<Callee>", "<UnaryOp>", "<FuncRParams>", "<Param>", "<MulExp>", "<MulOp>",
-                                          "<AddExp>",
-                                          "<AddOp>", "<RelExp>", "<RelOp>", "<EqExp>", "<EqOp>", "<LAndExp>",
-                                          "<LOrExp>", "<ConstExp>"};
+//enum RULE_CATEGORY {
+//    PROGRAM, COMPUNIT, DECL, CONSTDECL, BTYPE, CONSTDEF, CONSTINITVAL,
+//    VARDECL, VARDEF, INITVAL, FUNCDEF, FUNCTYPE, FUNCFPARAMS,
+//    FUNCFPARAM, BLOCK, BLOCKITEM, STMT, ASSIGNSTMT, EXPSTMT,
+//    CONDITIONSTMT, WHILESTMT, BREAKSTMT, CONTINUESTMT, RETURNSTMT,
+//    EXP, COND, LVAL, PRIMARYEXP, NUMBER, INTCONST, UNARYEXP,
+//    CALLEE, UNARYOP, FUNCRPARAMS, PARAM, MULEXP, MULOP, ADDEXP,
+//    ADDOP, RELEXP, RELOP, EQEXP, EQOP, LANDEXP, LOREXP, CONSTEXP
+//};
+//
+//static const int RULE_NUM = 100;
+//
+//static const char *ruleNames[RULE_NUM] = {"<Program>", "<CompUnit>", "<Decl>", "<ConstDecl>", "<BType>", "<ConstDef>",
+//                                          "<ConstInitVal>",
+//                                          "<VarDecl>", "<VarDef>", "<InitVal>", "<FuncDef>", "<FuncType>",
+//                                          "<FuncFParamsAST>",
+//                                          "<FuncFParam>", "<BlockAST>", "<BlockItem>", "<Stmt>", "<AssignStmt>",
+//                                          "<ExpStmt>",
+//                                          "<ConditionStmt>", "<WhileStmt>", "<BreakStmt>", "<ContinueStmt>",
+//                                          "<ReturnStmt>",
+//                                          "<Exp>", "<Cond>", "<LVal>", "<PrimaryExp>", "<Number>", "<IntConst>",
+//                                          "<UnaryExp>",
+//                                          "<Callee>", "<UnaryOp>", "<FuncRParams>", "<Param>", "<MulExp>", "<MulOp>",
+//                                          "<AddExp>",
+//                                          "<AddOp>", "<RelExp>", "<RelOp>", "<EqExp>", "<EqOp>", "<LAndExp>",
+//                                          "<LOrExp>", "<ConstExp>"};
 
 
 //token name
@@ -93,86 +93,70 @@ enum OperatorType {
     OpJMain,
     OpExit,
     OpPara,
-    OpParaArr,
     OpReturn,
     OpPrintInt,
-//    OpAssArray,
-//    OpGetArray,
-//    OpLSS,
-//    OpLEQ,
-//    OpGRE,
-//    OpGEQ,
-//    OpEQL,
-//    OpNEQ,
-//    OpBEZ,
-//    OpBNEZ,
-//    OpJmp,
-//    OpLabel,
-//    OpParam,
-//    OpPaVal,
-//    OpCall,
-//    OpReturn,
-//    OpRetVar,
+    OpLSS,
+    OpLEQ,
+    OpGRE,
+    OpGEQ,
+    OpEQL,
+    OpNEQ,
+    OpJmp,
+    OpLabel,
+    OpBreak,
+    OpContinue
 };
 
 
 static const char *const operatorString[] = {
-        "array",
-        "var",   //变量
-        "const", //常量
-        "PLUS",
-        "MINU",
-        "MULT",
-        "DIV",
-        "ASSIGN",
-        "push",
-        "call",
+        "Array",
+        "Var",   //变量
+        "Const", //常量
+        "Plus",
+        "Minu",
+        "Mult",
+        "Div",
+        "Assign",
+        "Push",
+        "Call",
         "Not",
-        "MOD",
-        "getint",
-        "print",
-        "func",
-        "OpJMain",
-        "exit",
-        "para",
-        "paraArr",
-        "ret",
-        "printInt",
-//        "PLUS  ",
-//        "MINU  ",
-//        "MULT  ",
-//        "DIV   ",
-//        "ASSIGN",
-//        "Scanf ",
-//        "Print ",
-//        "ConDef",
-//        "VarDef",
-//        "FunDef",
-//        "JMain ",
-//        "Exit  ",
-//        "AssArr",
-//        "GetArr",
-//        "bez   ",
-//        "bnez  ",
-//        "Jmp to",
-//        "Label:",
-//        "params",
-//        "call p",
-//        "Fc Cal",
-//        "Return",
-//        "retVar",
+        "Mod",
+        "Getint",
+        "Print",
+        "Func",
+        "JMain",
+        "Exit",
+        "Para",
+        "Ret",
+        "PrintInt",
+        "LSS", // <
+        "LEQ", // <=
+        "GRE", // >
+        "GEQ", // >=
+        "EQL", // ==
+        "NEQ", // !=
+        "Jmp",
+        "Label",
+        "Break",
+        "Continue"
 };
 
 enum SymbolType {
     INT,
     VOID,
-    ARR,
+    IF,
+    WHILE,
+    BEGIN,
+    END,
 };
 
 static const char *const symbolTypeString[] = {
         "int",
         "void",
-        "arr",
+        "if_",
+        "while_",
+        "_begin",
+        "_end",
 };
 
 #endif //COMPILER_TYPE_H

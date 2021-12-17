@@ -232,47 +232,6 @@ shared_ptr<FuncDefAST> Parser::parseFuncDef() {
 }
 
 
-shared_ptr<EqExpAST> Parser::parseEqExp() {
-    vector<shared_ptr<RelExpAST>> relExps;
-    vector<int> symbols; // ==  !=
-    switch (CurTok) {
-        case PLUS:
-        case MINU:
-        case IDENFR:
-        case LPARENT:
-        case INTCON:
-        case NOT: {
-            auto t = parseRelExp();
-            relExps.push_back(move(t));
-#ifdef ParserPrint
-            fprintf(out, "<RelExp>\n");
-            cout << "<RelExp>" << endl;
-#endif
-            while (CurTok == EQL || CurTok == NEQ) {
-#ifdef ParserPrint
-                fprintf(out, "<EqExp>\n");
-                cout << "<EqExp>" << endl;
-#endif
-                symbols.push_back(CurTok);
-                getNextToken();
-                auto t = parseRelExp();
-#ifdef ParserPrint
-                fprintf(out, "<RelExp>\n");
-                cout << "<RelExp>" << endl;
-#endif
-                relExps.push_back(move(t));
-            }
-            return make_shared<EqExpAST>(symbols, move(relExps));
-        }
-            break;
-        default: {
-            fprintf(stderr, "error\n");
-            exit(-1);
-        }
-    }
-    return nullptr;
-}
-
 shared_ptr<RelExpAST> Parser::parseRelExp() {
     vector<shared_ptr<AddExpAST>> addExps;
     vector<int> symbols; // ==  !=
@@ -305,6 +264,48 @@ shared_ptr<RelExpAST> Parser::parseRelExp() {
                 addExps.push_back(move(t));
             }
             return make_shared<RelExpAST>(symbols, move(addExps));
+        }
+            break;
+        default: {
+            fprintf(stderr, "error\n");
+            exit(-1);
+        }
+    }
+    return nullptr;
+}
+
+
+shared_ptr<EqExpAST> Parser::parseEqExp() {
+    vector<shared_ptr<RelExpAST>> relExps;
+    vector<int> symbols; // ==  !=
+    switch (CurTok) {
+        case PLUS:
+        case MINU:
+        case IDENFR:
+        case LPARENT:
+        case INTCON:
+        case NOT: {
+            auto t = parseRelExp();
+            relExps.push_back(move(t));
+#ifdef ParserPrint
+            fprintf(out, "<RelExp>\n");
+            cout << "<RelExp>" << endl;
+#endif
+            while (CurTok == EQL || CurTok == NEQ) {
+#ifdef ParserPrint
+                fprintf(out, "<EqExp>\n");
+                cout << "<EqExp>" << endl;
+#endif
+                symbols.push_back(CurTok);
+                getNextToken();
+                auto t = parseRelExp();
+#ifdef ParserPrint
+                fprintf(out, "<RelExp>\n");
+                cout << "<RelExp>" << endl;
+#endif
+                relExps.push_back(move(t));
+            }
+            return make_shared<EqExpAST>(symbols, move(relExps));
         }
             break;
         default: {

@@ -9,6 +9,8 @@ int global_offset;
 
 stack<SymbolType> defineType;
 
+stack<shared_ptr<Obj>> while_stack_head, while_stack_end;
+
 vector<shared_ptr<IRcode>> IRCodeList;
 
 SymTable symTable;
@@ -73,14 +75,10 @@ void IRcode::print() {
             cout << obj[0]->p() << " " << obj[1]->p() << "()" << endl;
             break;
         case OpNot:
-            cout << obj[0]->p() << " = !" << obj[1]->p() << endl;
+            cout << obj[0]->p() << " = !" << obj[2]->p() << endl;
             break;
         case OpPara:
             cout << operatorString[op] << " " << obj[0]->p() << " " << obj[1]->p() << endl;
-            break;
-        case OpParaArr:
-            cout << operatorString[op] << " " << obj[0]->p() << " " << obj[1]->p() << " " <<
-                 obj[2]->p() << endl;
             break;
         case OpReturn:
             cout << operatorString[op] << " ";
@@ -100,6 +98,34 @@ void IRcode::print() {
             break;
         case OpJMain:
             cout << operatorString[op] << endl;
+            break;
+        case OpJmp:
+            cout << operatorString[op] << " "<< obj[0]->p() << endl;
+            break;
+        case OpLabel:
+            cout << obj[0]->p() << ":" << endl;
+            break;
+        case OpLSS:
+            cout << "blt " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpLEQ:
+            cout << "ble " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpGRE:
+            cout << "bgt " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpGEQ:
+            cout << "bge " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpEQL:
+            cout << "beq " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpNEQ:
+            cout << "bne " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
+            break;
+        case OpBreak://无输出
+            break;
+        case OpContinue://无输出
             break;
         default:
             cout << "忘记输出了\n";
@@ -334,6 +360,7 @@ shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
             shared_ptr<Obj> obj = make_shared<Obj>(varName, tmp, var);
             if (var->isConst) {
                 obj->num = var->values[index]->num;
+                obj->branch = 5;
             }
             return obj;
         }
@@ -361,60 +388,6 @@ shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
         shared_ptr<Obj> obj = make_shared<Obj>(varName, obj2[0], var);
         return obj;
     }
-    /*
-    shared_ptr<Obj> old;
-    shared_ptr<Obj> now;
-
-    if (objExp.size() == 1) {
-        now = objExp[0];
-        shared_ptr<Obj> obj = make_shared<Obj>(varName, now, var);
-        return obj;
-    }
-
-    for (int i = 0; i < objExp.size(); ++i) {
-        if (i != objExp.size() - 1) {
-            shared_ptr<Obj> mult = objExp[i];
-            for (int j = i + 1; j < objExp.size(); j++) {
-                shared_ptr<Obj> obj[3] = {newtemp(), mult, varExps[j]};
-
-                shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->name, 0, INT, NowLevel);
-
-                var_offset += 1;
-                var->setOffsetAndNeedSpace(var_offset, 1);
-
-                obj[0]->setVar(var);
-
-                shared_ptr<IRcode> t = make_shared<IRcode>(OpMULT, obj);
-                IRCodeList.push_back(t);
-                mult = obj[0];
-            }
-            old = now;
-            now = mult;
-        } else {
-            old = now;
-            now = objExp[i];
-        }
-
-        if (i != 0) {
-            shared_ptr<Obj> obj[3] = {newValue(), old, now};
-
-            shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->name, 0, INT, NowLevel);
-
-            var_offset += 1;
-            var->setOffsetAndNeedSpace(var_offset, 1);
-
-            obj[0]->setVar(var);
-
-            shared_ptr<IRcode> t = make_shared<IRcode>(OpPLUS, obj);
-            IRCodeList.push_back(t);
-            old = obj[0];
-        }
-    }
-
-    shared_ptr<Obj> obj = make_shared<Obj>(varName, old, var);
-    return obj;
-    */
-
 }
 
 shared_ptr<Obj> IRcodeMaker::programPrimaryExp(shared_ptr<PrimaryExpAST> &primaryExp) {
@@ -493,7 +466,8 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
                 return make_shared<Obj>(0);
             }
         }
-        case 3: {// + - unaryExp
+        case 3: {// + - ! unaryExp
+            //最后增加！
             shared_ptr<UnaryOpAST> unaryOp = unaryExp->unaryOp;
             shared_ptr<Obj> ans = programUnaryExp(unaryExp->unaryExp);
 
@@ -512,14 +486,20 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
             obj[0]->setVar(var);
 
             shared_ptr<IRcode> t;
-            if (unaryOp->symbol == PLUS) {
+            if (unaryOp->symbol == PLUS) { // +
                 obj[0]->num = 0 + obj[2]->num;
                 t = make_shared<IRcode>(OpPLUS, obj);
-            } else if (unaryOp->symbol == MINU) {
+            } else if (unaryOp->symbol == MINU) {// -
                 obj[0]->num = 0 - obj[2]->num;
                 t = make_shared<IRcode>(OpMINU, obj);
-            } else {
+            } else if (unaryOp->symbol == NOT) { // !
+                if (ans->branch == 5) {
+                    obj[0]->num = ans->num == 0 ? 1 : 0;
+                }
                 t = make_shared<IRcode>(OpNot, obj);
+            }
+            if (ans->branch == 5) {
+                obj[0]->branch = 5;
             }
             IRCodeList.push_back(t);
             return obj[0];
@@ -572,6 +552,10 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
             var->setOffsetAndNeedSpace(var_offset, 1);
 
             obj[0]->setVar(var);
+            if (isConst) {
+                obj[0]->branch = 5;
+                obj[0]->num = num;
+            }
 
             shared_ptr<IRcode> t;
             if (symbol[i - 1] == MULT)
@@ -626,7 +610,10 @@ shared_ptr<Obj> IRcodeMaker::programAddExp(shared_ptr<AddExpAST> &addExp) {
             var->setOffsetAndNeedSpace(var_offset, 1);
 
             obj[0]->setVar(var);
-
+            if (isConst) {
+                obj[0]->branch = 5;
+                obj[0]->num = num;
+            }
             shared_ptr<IRcode> t;
             if (symbol[i - 1] == PLUS)
                 t = make_shared<IRcode>(OpPLUS, obj);
@@ -875,85 +862,157 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
         shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, objs);
         IRCodeList.push_back(t);
     }
-    /*
-    if (constExps.empty()) {
-        //para int a
-
-        shared_ptr<VarSym> var = make_shared<VarSym>(false, name, dimension, defineType.top(), NowLevel);
-        symTable.Var.push_back(var);
-        exps.push_back(var);
-        //符号表
-
-        var_offset += 1;
-        var->setOffsetAndNeedSpace(var_offset, 1);
-
-        shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()), make_shared<Obj>(name, var)};
-        shared_ptr<IRcode> t = make_shared<IRcode>(OpPara, obj);
-        IRCodeList.push_back(t);
-
-
-    } */
-
-    //para arr int b[][12];
-
-    /*vector<shared_ptr<Obj>> arrExps; //这是数组的每层的大小
-
-    shared_ptr<Obj> obj[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType.top())};
-    if (constExps.size() == 1) {
-
-        shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, arrExps, defineType.top(), NowLevel);
-        exps.push_back(var);
-
-        obj[2] = make_shared<Obj>(name, 0x3f3f3f3f, var);
-        shared_ptr<IRcode> t = make_shared<IRcode>(OpParaArr, obj);
-        IRCodeList.push_back(t);
-
-        arrExps.push_back(make_shared<Obj>(0x3f3f3f3f));
-
-        return;
-    }
-    arrExps.push_back(make_shared<Obj>(0x3f3f3f3f));
-
-    shared_ptr<Obj> before;
-    shared_ptr<Obj> now;
-    for (int i = 1; i < constExps.size(); ++i) {
-        before = now;
-        now = programConstExp(constExps[i]);
-        arrExps.push_back(now);
-        if (i != 1) {
-            shared_ptr<Obj> obj[3];
-            obj[0] = newValue();
-            obj[1] = before;
-            obj[2] = now;
-            now = obj[0];
-
-            shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->name, 0, INT, NowLevel);
-
-            var_offset += 1;
-            var->setOffsetAndNeedSpace(var_offset, 1);
-
-            obj[0]->setVar(var);
-
-            shared_ptr<IRcode> t = make_shared<IRcode>(OpMULT, obj);
-            IRCodeList.push_back(t);
-        }
-    }
-    now->type = ARR;
-
-    shared_ptr<VarSym> var = make_shared<VarSym>(name, dimension, arrExps, defineType.top(), NowLevel);
-    exps.push_back(var);
-    symTable.Var.push_back(var);
-
-    shared_ptr<Obj> ooo[3] = {make_shared<Obj>(ARR), make_shared<Obj>(defineType.top()),
-                              make_shared<Obj>(name, now, var)};
-    shared_ptr<IRcode> t = make_shared<IRcode>(OpParaArr, ooo);
-    IRCodeList.push_back(t);
-     */
-
-
-
     defineType.pop();
 }
+
+shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else) {
+    vector<int> &symbols = relExp->symbols;//< > <= >=
+
+    //实际上只有 < > <= >=
+    vector<shared_ptr<AddExpAST>> &addExps = relExp->addExps;
+
+    if (symbols.empty()) {
+        shared_ptr<Obj>obj = programAddExp(addExps[0]);
+        return obj;
+    } else {
+        int symbol = symbols[0];
+        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
+        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
+        if (obj1->branch == 5 && obj2->branch == 5) {
+            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+            shared_ptr<IRcode> t;
+            int num;
+            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
+                num = 1;
+            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
+                num = 1;
+            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
+                num = 1;
+            } else {
+                num = 0;
+            }
+            if (symbol == LEQ)
+                t = make_shared<IRcode>(OpGRE, obj);
+            if (symbol == LSS)
+                t = make_shared<IRcode>(OpGEQ, obj);
+            if (symbol == GRE)
+                t = make_shared<IRcode>(OpLEQ, obj);
+            if (symbol == GEQ)
+                t = make_shared<IRcode>(OpLSS, obj);
+            IRCodeList.push_back(t);
+            return make_shared<Obj>(num);
+        }
+        //其中至少一个没有获取值
+        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+        shared_ptr<IRcode> t;
+        if (symbol == GRE) {
+            t = make_shared<IRcode>(OpLEQ, obj);
+        } else if (symbol == GEQ) {
+            t = make_shared<IRcode>(OpLSS, obj);
+        } else if (symbol == LEQ) {
+            t = make_shared<IRcode>(OpGRE, obj);
+        } else if (symbol == LSS) {
+            t = make_shared<IRcode>(OpGEQ, obj);
+        }
+        IRCodeList.push_back(t);
+        return make_shared<Obj>(); //branch == 0;
+    }
+}
+
+shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> & eqExp, string &label, string &Else) {
+    vector<int> &symbols = eqExp->symbols;// == !=
+
+    //实际上这个应该只有 a==b / a!=b 以及 a（a是 b > c或b < c, b<=c, b>=c，或 !d）
+    vector<shared_ptr<RelExpAST>> &relExps = eqExp->relExps;
+
+    if (symbols.empty()) {
+        //去往下一层
+        shared_ptr<Obj> ans = programRelExp(relExps[0], label, Else);
+        if (ans->var != nullptr) {
+            //之前没有输出 比如 if (a){}
+            shared_ptr<Obj> obj[3] = {ans, make_shared<Obj>(0), make_shared<Obj>(label + Else)};
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpEQL, obj);
+            IRCodeList.push_back(t);
+        }
+        return ans;
+    } else {
+        //显然是 a == b或 a != b
+        int symbol = symbols[0];
+        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else);
+        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else);
+        if (obj1->branch == 5 && obj2->branch == 5) {
+            //两者都是已经获取值
+            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+            shared_ptr<IRcode> t;
+            int num;
+            if (obj1->num == obj2->num && symbol == EQL) {
+                num = 1;
+            } else if (obj1->num != obj2->num && symbol == NEQ) {
+                num = 1;
+            } else {
+                num = 0;
+            }
+            if (symbol == NEQ)
+                t = make_shared<IRcode>(OpEQL, obj);
+            if (symbol == EQL)
+                t = make_shared<IRcode>(OpNEQ, obj);
+            IRCodeList.push_back(t);
+            return make_shared<Obj>(num);
+        }
+        //两者至少一个没有立刻得到值。
+        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+        shared_ptr<IRcode> t;
+        if (symbol == EQL) {
+            t = make_shared<IRcode>(OpNEQ, obj);
+        } else if (symbol == NEQ) {
+            t = make_shared<IRcode>(OpEQL, obj);
+        }
+        IRCodeList.push_back(t);
+        return make_shared<Obj>(); //branch = 0
+    }
+}
+
+void IRcodeMaker::programLAndExp(shared_ptr<LAndExpAST> &lAndExp, string &label, string &Else) {
+    vector<shared_ptr<EqExpAST>> &eqExps = lAndExp->eqExps;
+    for (int j = 0; j < eqExps.size(); j ++) {
+        shared_ptr<Obj> obj = programEqExp(eqExps[j], label, Else);
+        if (obj->branch == 5) {
+            //说明已经得到了结果，0或非0，0表示假，非0表示真。
+            if (obj->num == 0) {
+                break;
+            }
+        }
+    }
+}
+
+void IRcodeMaker::programLOrExp(shared_ptr<LOrExpAST> &lOrExp, string &label, string &Else) {
+    vector<shared_ptr<LAndExpAST>> &lAndExps = lOrExp->lAndExps;
+
+    if (lAndExps.size() == 1) {
+        //没有||语句。
+        programLAndExp(lAndExps[0], label, Else);
+    } else {
+        for (int i = 0; i < lAndExps.size(); ++i) {
+            if (i != lAndExps.size() - 1) {
+                string tmp = "else_" + to_string(i);
+                programLAndExp(lAndExps[i], label, tmp);
+                shared_ptr<Obj> obj[3] = {make_shared<Obj>(label + "begin")};
+                shared_ptr<IRcode> t = make_shared<IRcode>(OpJmp, obj);
+                IRCodeList.push_back(t);
+                obj[0] = make_shared<Obj>(label + "else_" + to_string(i));
+                t = make_shared<IRcode>(OpLabel, obj);
+                IRCodeList.push_back(t);
+            } else {
+                programLAndExp(lAndExps[i], label, Else);
+            }
+        }
+    }
+}
+
+void IRcodeMaker::programCond(shared_ptr<CondAST> &cond, string &label, string &Else) {
+    programLOrExp(cond->lOrExp, label, Else);
+}
+
 
 void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
     switch (stmt->type) {
@@ -977,16 +1036,80 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
             NowLevel--;
         }
             break;
-        case 4: { //4 if
+        case 4: { //4 if---------------
+            shared_ptr<CondAST> condIf = stmt->condIf;
+            shared_ptr<StmtAST> stmtIf = stmt->stmtIf;
+            shared_ptr<StmtAST> stmtElse = stmt->stmtElse;
+            string Else = stmtElse == nullptr ? "end" : "else";
+            string if_label = newLabel(IF);
+            //开始处理
+            programCond(condIf, if_label, Else);
 
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(if_label + "begin")};
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpLabel, obj);
+            IRCodeList.push_back(t);
+
+            programStmt(stmtIf);
+
+            if (stmtElse != nullptr) {
+                obj[0] = make_shared<Obj>(if_label + "end");
+                t = make_shared<IRcode>(OpJmp, obj);
+                IRCodeList.push_back(t);
+                obj[0] = make_shared<Obj>(if_label + "else");
+                t = make_shared<IRcode>(OpLabel, obj);
+                IRCodeList.push_back(t);
+                programStmt(stmtElse);
+            }
+
+            obj[0] = make_shared<Obj>(if_label + "end");
+            t = make_shared<IRcode>(OpLabel, obj);
+            IRCodeList.push_back(t);
         }
             break;
-        case 5: { //5 while
+        case 5: { //5 while------------------
+            shared_ptr<CondAST> condWhile = stmt->condWhile;
+            shared_ptr<StmtAST> stmtWhile = stmt->stmtWhile;
+            string Else = "end";
+            string while_label = newLabel(WHILE);
+            while_stack_head.push(make_shared<Obj>(while_label + "head"));
+            while_stack_end.push(make_shared<Obj>(while_label + "end"));
+            //开始处理
 
+            //label
+            shared_ptr<Obj> obj[3] = {make_shared<Obj>(while_label + "head")};
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpLabel, obj);
+            IRCodeList.push_back(t);
+
+            programCond(condWhile, while_label, Else);
+
+            obj[0] = make_shared<Obj>(while_label + "begin");
+            t = make_shared<IRcode>(OpLabel, obj);
+            IRCodeList.push_back(t);
+
+            programStmt(stmtWhile);
+
+            obj[0] = make_shared<Obj>(while_label + "head");
+            t = make_shared<IRcode>(OpJmp, obj);
+            IRCodeList.push_back(t);
+
+            obj[0] = make_shared<Obj>(while_label + "end");
+            t = make_shared<IRcode>(OpLabel, obj);
+            IRCodeList.push_back(t);
+
+            while_stack_head.pop();
+            while_stack_end.pop();
         }
             break;
-        case 6: { //6 break or continue
-
+        case 6: { //6 break or continue------------------
+            int category = stmt->category;
+            shared_ptr<Obj> obj[3];
+            if (category == BREAKTK) {
+                obj[0] = while_stack_end.top();
+            } else if (category == CONTINUETK) {
+                obj[0] = while_stack_head.top();
+            }
+            shared_ptr<IRcode> t = make_shared<IRcode>(OpJmp, obj);
+            IRCodeList.push_back(t);
         }
             break;
         case 7: { //7 return ----------------
@@ -1008,7 +1131,7 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
             }
         }
             break;
-        case 8: { //8 lval = getint();--------------
+        case 8: { //8 Lval = getint();--------------
             shared_ptr<Obj> scan_obj[3] = {newValue()};
 
             shared_ptr<VarSym> var = make_shared<VarSym>(false, scan_obj[0]->name, 0, INT, NowLevel);
@@ -1032,6 +1155,19 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
         }
             break;
     }
+}
+
+string IRcodeMaker::newLabel(SymbolType type) {
+    int count;
+    if (type == WHILE) {
+        static int while_count = -1;
+        count = ++while_count;
+    } else if (type == IF) {
+        static int if_count = -1;
+        count = ++if_count;
+    }
+    string label = symbolTypeString[type] + to_string(count) + "_";
+    return label;
 }
 
 void IRcodeMaker::programPrintf(const string &formatString, vector<shared_ptr<ExpAST>> exps) {
@@ -1157,7 +1293,7 @@ void IRcodeMaker::programFunc(shared_ptr<FuncDefAST> &funcDef) {
     if (!symTable.Func.empty()) {
         int len = symTable.Func.size();
         symTable.Func[len - 1]->setOffset(var_offset);
-        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
+//        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
     }
     var_offset = 0;
 
@@ -1198,7 +1334,7 @@ void IRcodeMaker::programMainDef(shared_ptr<MainFuncDefAST> &mainFunc) {
     if (!symTable.Func.empty()) {
         int len = symTable.Func.size();
         symTable.Func[len - 1]->setOffset(var_offset);
-        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
+//        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
     }
     shared_ptr<FuncSym> func = make_shared<FuncSym>(name, defineType.top());
     var_offset = 0;
@@ -1235,10 +1371,9 @@ void IRcodeMaker::program() {
     if (compUnitAst->main != nullptr) {
         shared_ptr<MainFuncDefAST> &mainFunc = compUnitAst->main;
         programMainDef(mainFunc);
-
         int len = symTable.Func.size();
         symTable.Func[len - 1]->setOffset(var_offset);
-        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
+//        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
     }
     isMain = false;
     return;
@@ -1248,7 +1383,7 @@ void IRcodeMaker::program() {
 shared_ptr<Obj> IRcodeMaker::newValue() {
     static int count = -1;
     count++;
-    string temp = "tmp" + to_string(count);
+    string temp = "tmpVar_" + to_string(count);
     shared_ptr<Obj> obj = make_shared<Obj>(temp);
     return obj;
 }

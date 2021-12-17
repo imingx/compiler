@@ -201,8 +201,6 @@ void Mips::program() {
                             //传入了 func(b[c])之类的东西。
                             loadValue(param->index, "$t0", value1, isNum1, true);
                             //计算第几个
-                            // fprintf(out, "mult $t0, $t1\n");
-                            // fprintf(out, "mflo $t2\n");
                             fprintf(out, "li $t1, %d\n", var->exps[1] * 4);
                             fprintf(out, "mult $t0, $t1\n");
                             fprintf(out, "mflo $t2\n");
@@ -283,6 +281,34 @@ void Mips::program() {
             saveValue(ircode->obj[0], "$t0");
         } else if (ircode->op == OpJMain) {
             fprintf(out, "\nj func_main\n\n");
+        } else if (ircode->op == OpLSS) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "blt $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        } else if (ircode->op == OpLEQ) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "ble $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        } else if (ircode->op == OpGRE) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "bgt $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        } else if (ircode->op == OpGEQ) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "bge $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        } else if (ircode->op == OpEQL) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "beq $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        } else if (ircode->op == OpNEQ) {
+            loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
+            fprintf(out, "bne $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
+        }else if (ircode->op == OpJmp) {
+            fprintf(out, "j %s\n", ircode->obj[0]->name.c_str());
+        } else if (ircode->op == OpLabel) {
+            fprintf(out, "%s:\n", ircode->obj[0]->name.c_str());
         }
     }
 }

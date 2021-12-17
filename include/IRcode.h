@@ -145,14 +145,13 @@ class Obj {
 public:
     int branch;
     //0 is nothing
-    //1 is type(int), void, arr
+    //1 is type:int, void
     //2 is name
-    //3 is name[tx]
+    //3 is name[index]
     //4 is name[1]  name[num_index]
     //5 is num
     string name;
 
-//    string index;
     shared_ptr<Obj> index;
 
     int num_index;
@@ -296,6 +295,9 @@ private:
     shared_ptr<CompUnitAST> &compUnitAst;
     int NowLevel;
 public:
+
+    string newLabel(SymbolType type);
+
     shared_ptr<Obj> newValue();
 
     void print();
@@ -330,8 +332,6 @@ public:
 
     void programPrintf(const string &formatString, vector<shared_ptr<ExpAST>> exps);
 
-    void programCond(shared_ptr<CondAST> &cond);
-
     shared_ptr<Obj> programExp(shared_ptr<ExpAST> &exp);
 
     shared_ptr<Obj> programConstExp(shared_ptr<ConstExpAST> &constExp);
@@ -348,15 +348,17 @@ public:
 
     shared_ptr<Obj> programPrimaryExp(shared_ptr<PrimaryExpAST> &primaryExp);
 
-    void programRelExp(shared_ptr<RelExpAST> &relExp);
+    shared_ptr<Obj> programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else);
 
-    void programEqExp(shared_ptr<EqExpAST> &eqExp);
+    shared_ptr<Obj> programEqExp(shared_ptr<EqExpAST> &eqExp, string &label, string &Else);
 
-    void programLAndExp(shared_ptr<LAndExpAST> &lAndExp);
+    void programLAndExp(shared_ptr<LAndExpAST> &lAndExp, string &label, string &Else);
 
-    void programLOrExp(shared_ptr<LOrExpAST> &lOrExp);
+    void programLOrExp(shared_ptr<LOrExpAST> &lOrExp, string &label, string &Else);
 
-    void programFuncRParams(shared_ptr<FuncRParamsAST> &funcRParams, vector<int> &dimension);
+    void programCond(shared_ptr<CondAST> &cond, string &label, string &Else);
+
+    //    void programFuncRParams(shared_ptr<FuncRParamsAST> &funcRParams, vector<int> &dimension);
 };
 
 
