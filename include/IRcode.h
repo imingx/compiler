@@ -106,15 +106,6 @@ public:
         values.reserve(len);
     }
 
-//    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level, shared_ptr<Obj> &value) {
-//        this->name = name;
-//        this->dim = dim;
-//        this->type = type;
-//        this->exps = exps;
-//        this->level = level;
-//        this->value = value;
-//    }
-
     VarSym(bool isConst, string name, int dim, SymbolType type, int level, shared_ptr<Obj> &value) {
         this->isConst = isConst;
         this->name = name;

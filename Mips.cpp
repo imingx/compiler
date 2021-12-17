@@ -188,10 +188,34 @@ void Mips::program() {
                     if (var->isArrParam) {
                         //发现是自调用传参
                         // int func(int a[]) {func(a);}
-                        string preg = "$fp";
-                        int address = -(var->offset) * 4;
-                        fprintf(out, "lw $t0, %d(%s)\n", address, preg.c_str());
-                        fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
+                        if (var->dim == exps[size - 1]->dim) {
+                            string preg = "$fp";
+                            int address = -(var->offset) * 4; //自己所处的位置
+                            fprintf(out, "lw $t0, %d(%s)\n", address, preg.c_str());
+                            fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
+                        } else {
+                            //本二维数组参数又传递到另一个函数的一维数组中去了。
+                            // int func_1(int m[][3]) {  func_2(m[1]); }
+                            string preg = "$fp";
+                            int address = -(var->offset) * 4; //自己所处的位置
+                            fprintf(out, "lw $t0, %d(%s)\n", address, preg.c_str());
+                            //t0就是原来的偏移量，需要更改t0至m[1]的位置。
+
+                            if (param->branch == 4) {
+                                //m[1]
+                                int index = param->num_index * var->exps[1] * 4;
+                                fprintf(out, "subi $t0, $t0, %d\n", index);
+                            } else {
+                                //m[a]
+                                loadValue(param->index, "$t1", value1, isNum1, true);
+                                //计算第几个
+                                fprintf(out, "li $t2, %d\n", var->exps[1] * 4);
+                                fprintf(out, "mult $t1, $t2\n");
+                                fprintf(out, "mflo $t2\n");
+                                fprintf(out, "subu $t0, $t0, $t2\n");
+                            }
+                            fprintf(out, "sw $t0, %d($sp)\n", -4 * size);
+                        }
                     } else if (exps[size - 1]->dim == 1 && var->dim == 1) {
                         //一维传一维
                         exps[size - 1]->offset = var->offset;
