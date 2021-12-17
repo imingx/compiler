@@ -527,11 +527,12 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
             num *= now->num;
         else {
             if (symbol[i - 1] == MULT)
-                num += now->num;
-            else if (symbol[i - 1] == DIV)
+                num *= now->num;
+            else if (symbol[i - 1] == DIV && now->num != 0)
                 num /= now->num;
-            else if (symbol[i - 1] == MOD)
+            else if (symbol[i - 1] == MOD && now->num != 0) {
                 num %= now->num;
+            }
         }
 
         if (now->branch != 5)

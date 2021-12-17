@@ -305,10 +305,18 @@ void Mips::program() {
             loadValue(ircode->obj[0], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[1], "$t1", value2, isNum2, true);
             fprintf(out, "bne $t0, $t1, %s\n", ircode->obj[2]->name.c_str());
-        }else if (ircode->op == OpJmp) {
+        } else if (ircode->op == OpJmp) {
             fprintf(out, "j %s\n", ircode->obj[0]->name.c_str());
         } else if (ircode->op == OpLabel) {
             fprintf(out, "%s:\n", ircode->obj[0]->name.c_str());
+        } else if (ircode->op == OpNot) {
+            loadValue(ircode->obj[2], "$t0", value1, isNum1, true);
+            fprintf(out, "seq $t0, $t0, 0\n");
+            saveValue(ircode->obj[0], "$t0");
+        } else if (ircode->op == OpArray) {
+          //Array int a[10];无需输出
+        } else {
+            fprintf(out, "忘记输出了%s\n", operatorString[ircode->op]);
         }
     }
 }
