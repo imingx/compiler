@@ -100,7 +100,7 @@ void IRcode::print() {
             cout << operatorString[op] << endl;
             break;
         case OpJmp:
-            cout << operatorString[op] << " "<< obj[0]->p() << endl;
+            cout << operatorString[op] << " " << obj[0]->p() << endl;
             break;
         case OpLabel:
             cout << obj[0]->p() << ":" << endl;
@@ -123,9 +123,11 @@ void IRcode::print() {
         case OpNEQ:
             cout << "bne " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
             break;
-        case OpBreak://无输出
-            break;
-        case OpContinue://无输出
+        case OpSlt:
+        case OpSle:
+        case OpSgt:
+        case OpSge:
+            cout << operatorString[op] << " " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
             break;
         default:
             cout << "忘记输出了\n";
@@ -866,16 +868,16 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
     defineType.pop();
 }
 
-shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else) {
+shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else, bool haveEq) {
     vector<int> &symbols = relExp->symbols;//< > <= >=
 
     //实际上只有 < > <= >=
     vector<shared_ptr<AddExpAST>> &addExps = relExp->addExps;
 
     if (symbols.empty()) {
-        shared_ptr<Obj>obj = programAddExp(addExps[0]);
+        shared_ptr<Obj> obj = programAddExp(addExps[0]);
         return obj;
-    } else {
+    } else if (!haveEq) {
         int symbol = symbols[0];
         shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
         shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
@@ -917,10 +919,50 @@ shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string
         }
         IRCodeList.push_back(t);
         return make_shared<Obj>(); //branch == 0;
+    } else {
+        // if (a > b == a < c){}
+        int symbol = symbols[0];
+        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
+        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
+        if (obj1->branch == 5 && obj2->branch == 5) {
+            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+            int num;
+            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
+                num = 1;
+            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
+                num = 1;
+            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
+                num = 1;
+            } else {
+                num = 0;
+            }
+            return make_shared<Obj>(num);
+        }
+        shared_ptr<Obj> obj[3] = {newValue(), obj1, obj2};
+
+        shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
+
+        var_offset += 1;
+        var->setOffsetAndNeedSpace(var_offset, 1);
+
+        obj[0]->setVar(var);
+
+        shared_ptr<IRcode> t;
+        if (symbol == GRE) {
+            t = make_shared<IRcode>(OpSgt, obj);
+        } else if (symbol == GEQ) {
+            t = make_shared<IRcode>(OpSge, obj);
+        } else if (symbol == LEQ) {
+            t = make_shared<IRcode>(OpSle, obj);
+        } else if (symbol == LSS) {
+            t = make_shared<IRcode>(OpSlt, obj);
+        }
+        IRCodeList.push_back(t);
+        return obj[0];
     }
 }
 
-shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> & eqExp, string &label, string &Else) {
+shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> &eqExp, string &label, string &Else) {
     vector<int> &symbols = eqExp->symbols;// == !=
 
     //实际上这个应该只有 a==b / a!=b 以及 a（a是 b > c或b < c, b<=c, b>=c，或 !d）
@@ -928,7 +970,7 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> & eqExp, string &
 
     if (symbols.empty()) {
         //去往下一层
-        shared_ptr<Obj> ans = programRelExp(relExps[0], label, Else);
+        shared_ptr<Obj> ans = programRelExp(relExps[0], label, Else, false);
         if (ans->var != nullptr) {
             //之前没有输出 比如 if (a){}
             shared_ptr<Obj> obj[3] = {ans, make_shared<Obj>(0), make_shared<Obj>(label + Else)};
@@ -938,9 +980,11 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> & eqExp, string &
         return ans;
     } else {
         //显然是 a == b或 a != b
+        //可以有 a > 1 == a < 20
+
         int symbol = symbols[0];
-        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else);
-        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else);
+        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else, true);
+        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else, true);
         if (obj1->branch == 5 && obj2->branch == 5) {
             //两者都是已经获取值
             shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
@@ -975,7 +1019,7 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> & eqExp, string &
 
 void IRcodeMaker::programLAndExp(shared_ptr<LAndExpAST> &lAndExp, string &label, string &Else) {
     vector<shared_ptr<EqExpAST>> &eqExps = lAndExp->eqExps;
-    for (int j = 0; j < eqExps.size(); j ++) {
+    for (int j = 0; j < eqExps.size(); j++) {
         shared_ptr<Obj> obj = programEqExp(eqExps[j], label, Else);
         if (obj->branch == 5) {
             //说明已经得到了结果，0或非0，0表示假，非0表示真。

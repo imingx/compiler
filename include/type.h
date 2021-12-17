@@ -104,7 +104,11 @@ enum OperatorType {
     OpJmp,
     OpLabel,
     OpBreak,
-    OpContinue
+    OpContinue,
+    OpSlt,
+    OpSle,
+    OpSgt,
+    OpSge
 };
 
 
@@ -138,7 +142,11 @@ static const char *const operatorString[] = {
         "Jmp",
         "Label",
         "Break",
-        "Continue"
+        "Continue",
+        "slt",
+        "sle",
+        "sgt",
+        "sge"
 };
 
 enum SymbolType {

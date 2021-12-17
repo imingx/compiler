@@ -67,7 +67,6 @@ void Mips::loadValue(shared_ptr<Obj> &obj, string reg, int &value, bool &isNum, 
     }
 
     shared_ptr<VarSym> var = obj->var;
-
     if (var->dim == 0) {
         //lw单个数据
         int address = var->level == 0 ? (var->offset) * 4 : -(var->offset) * 4;
@@ -95,6 +94,7 @@ void Mips::loadValue(shared_ptr<Obj> &obj, string reg, int &value, bool &isNum, 
 
             fprintf(out, "sll $t2, $t2, 2\n");
             string r = var->level == 0 ? "subu" : "addu";
+            if (var->isArrParam) r = "subu";
             fprintf(out, "%s $t2, $t1, $t2\n", r.c_str());
             fprintf(out, "lw %s 0($t2)\n", reg.c_str());
         } else if (obj->branch == 4) {
@@ -314,7 +314,12 @@ void Mips::program() {
             fprintf(out, "seq $t0, $t0, 0\n");
             saveValue(ircode->obj[0], "$t0");
         } else if (ircode->op == OpArray) {
-          //Array int a[10];无需输出
+            //Array int a[10];无需输出
+        } else if (ircode->op == OpSge || ircode->op == OpSgt || ircode->op == OpSle || ircode->op == OpSlt) {
+            loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
+            fprintf(out, "%s $t0, $t0, $t1\n", operatorString[ircode->op]);
+            saveValue(ircode->obj[0], "$t0");
         } else {
             fprintf(out, "忘记输出了%s\n", operatorString[ircode->op]);
         }

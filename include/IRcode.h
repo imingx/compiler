@@ -348,7 +348,7 @@ public:
 
     shared_ptr<Obj> programPrimaryExp(shared_ptr<PrimaryExpAST> &primaryExp);
 
-    shared_ptr<Obj> programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else);
+    shared_ptr<Obj> programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else, bool haveEq);
 
     shared_ptr<Obj> programEqExp(shared_ptr<EqExpAST> &eqExp, string &label, string &Else);
 
