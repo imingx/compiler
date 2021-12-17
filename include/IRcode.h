@@ -38,32 +38,47 @@ public:
     vector<shared_ptr<VarSym>> exps;
     int offset;
 
-    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> &exps, SymbolType returnType, int offset) {
+    void setOffset(int offset) {
+        this->offset = offset;
+    }
+
+    FuncSym(string name, int paraNum, vector<shared_ptr<VarSym>> &exps, SymbolType returnType) {
         this->name = name;
         this->paraNum = paraNum;
         this->exps = exps;
         this->returnType = returnType;
-        this->offset = offset;
+//        this->offset = offset;
     }
 
-    FuncSym(string name, SymbolType type, int offset) {
+    FuncSym(string name, SymbolType type) {
         this->name = name;
         this->returnType = type;
         this->paraNum = 0;
-        this->offset = offset;
+//        this->offset = offset;
     }
 };
 
 class VarSym {
 public:
-    string name;
-    int dim;
-    SymbolType type;
-    int level;
-    vector<shared_ptr<Obj>> exps; //int a[exp][exp]
-    shared_ptr<Obj> value;   //int a = 10;
+    string name;        //变量名
+    int dim;            //变量维度
+    SymbolType type;    //变量类型
+    int level;          //所处层级
+    vector<int> exps;   //每一层的值   int a[2][3];
+    //    vector<shared_ptr<Obj>> exps; //每一个表达式。int a[exp][exp]
+    shared_ptr<Obj> value;      //int a = 10;
+    //int a = b; 这个需要到程序运行才知道。
+    //如果是数组：
+    vector<shared_ptr<Obj>> values; // int a[10] = {1,2,3,4};
     int offset;
     int needSpace;
+    bool isConst;
+
+    bool isArrParam;
+
+    void setValue(int value) {
+        this->value = make_shared<Obj>(value);
+    }
 
     void setValue(shared_ptr<Obj> value) {
         this->value = value;
@@ -74,36 +89,49 @@ public:
         this->needSpace = needSpace;
     }
 
-    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level) {
+    //赋值名字，维度，表达式，类型，层级
+    VarSym(bool isConst, string name, int dim, vector<int> &exps, SymbolType type, int level) {
+        this->isConst = isConst;
         this->name = name;
         this->dim = dim;
         this->type = type;
         this->exps = exps;
         this->level = level;
+        int len = 1;
+        for (int i = 0; i < exps.size(); ++i) {
+            len *= exps[i];
+        }
+        isArrParam = false;
+        values.reserve(len);
     }
 
-    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level, shared_ptr<Obj> &value) {
+//    VarSym(string name, int dim, vector<shared_ptr<Obj>> &exps, SymbolType type, int level, shared_ptr<Obj> &value) {
+//        this->name = name;
+//        this->dim = dim;
+//        this->type = type;
+//        this->exps = exps;
+//        this->level = level;
+//        this->value = value;
+//    }
+
+    VarSym(bool isConst, string name, int dim, SymbolType type, int level, shared_ptr<Obj> &value) {
+        this->isConst = isConst;
         this->name = name;
         this->dim = dim;
         this->type = type;
-        this->exps = exps;
         this->level = level;
         this->value = value;
+        isArrParam = false;
     }
 
-    VarSym(string name, int dim, SymbolType type, int level, shared_ptr<Obj> &value) {
+    VarSym(bool isConst, string name, int dim, SymbolType type, int level) {
+        this->isConst = isConst;
         this->name = name;
         this->dim = dim;
         this->type = type;
         this->level = level;
-        this->value = value;
-    }
-
-    VarSym(string name, int dim, SymbolType type, int level) {
-        this->name = name;
-        this->dim = dim;
-        this->type = type;
-        this->level = level;
+        this->value = make_shared<Obj>(0);
+        isArrParam = false;
     }
 };
 
@@ -118,15 +146,20 @@ public:
     int branch;
     //0 is nothing
     //1 is type(int), void, arr
-        //if arr, str[][tx]
-    //2 is str
-    //3 is str[tx]
-    //4 is str[1]  str[num]
+    //2 is name
+    //3 is name[tx]
+    //4 is name[1]  name[num_index]
     //5 is num
-    string str;
-    string index;
+    string name;
+
+//    string index;
+    shared_ptr<Obj> index;
+
+    int num_index;
+
     SymbolType type;
     int num;
+
     shared_ptr<VarSym> var;
     shared_ptr<FuncSym> func;
 
@@ -145,71 +178,76 @@ public:
         this->type = type;
     }
 
-    Obj(string str) {
+    Obj(string name) {
         this->branch = 2;
-        this->str = str;
+        this->name = name;
     }
 
-    Obj(string str, shared_ptr<VarSym> &var) {
+    Obj(string name, shared_ptr<VarSym> &var) {
         this->branch = 2;
-        this->str = str;
+        this->name = name;
         this->var = var;
     }
 
-    Obj(string str, shared_ptr<FuncSym> &func) {
+    Obj(string name, shared_ptr<FuncSym> &func) {
         this->branch = 2;
-        this->str = str;
+        this->name = name;
         this->func = func;
     }
 
-    Obj(string str, string index) {
+    Obj(string name, shared_ptr<Obj> &index) {
         this->branch = 3;
-        this->str = str;
+        this->name = name;
         this->index = index;
     }
 
-    Obj(string str, int num) {
+    Obj(string name, int num_index) {
         this->branch = 4;
-        this->str = str;
-        this->num = num;
+        this->name = name;
+        this->num_index = num_index;
     }
 
-    Obj(string str, shared_ptr<Obj> &obj) {
+    /*
+    Obj(string name, shared_ptr<Obj> &obj) {
         if (obj->branch == 2) {
             this->branch = 3;
-            this->index = obj->str;
+            this->index = obj->name;
         } else if (obj->branch == 5) {
             this->branch = 4;
             this->num = obj->num;
         }
-        this->str = str;
-        if (obj->type == ARR) {
-            this->type = ARR;
-        }
+        this->name = name;
+//        if (obj->type == ARR) {
+//            this->type = ARR;
+//        }
     }
 
-    Obj(string str, int num, shared_ptr<VarSym> &var) {
+    Obj(string name, int num, shared_ptr<VarSym> &var) {
         //para int a[1]
         this->var = var;
         this->branch = 4;
         this->num = num;
-        this->str = str;
-        this->type = ARR;
+        this->name = name;
+//        this->type = ARR;
     }
-
-    Obj(string str, shared_ptr<Obj> &obj, shared_ptr<VarSym> &var) {
+ */
+    Obj(string name, shared_ptr<Obj> &obj, shared_ptr<VarSym> &var) {
         this->var = var;
-        if (obj->branch == 2) {
+        if (obj->branch == 2 || obj->branch == 3 || obj->branch == 4) {
             this->branch = 3;
-            this->index = obj->str;
+            this->index = obj;
         } else if (obj->branch == 5) {
             this->branch = 4;
-            this->num = obj->num;
+            this->num_index = obj->num;
         }
-        this->str = str;
-        if (obj->type == ARR) {
-            this->type = ARR;
-        }
+        this->name = name;
+    }
+
+    Obj(string name, int num_index, shared_ptr<VarSym> &var) {
+        this->branch = 4;
+        this->name = name;
+        this->num_index = num_index;
+        this->var = var;
     }
 
     Obj(int num) {
@@ -220,11 +258,13 @@ public:
     Obj() : branch(0) {}
 
     Obj(Obj &t) {
+        this->num_index = t.num_index;
+        this->name = t.name;
         this->branch = t.branch;
-        this->str = t.str;
         this->index = t.index;
         this->type = t.type;
         this->num = t.num;
+        this->var = t.var;
     }
 };
 
@@ -256,7 +296,7 @@ private:
     shared_ptr<CompUnitAST> &compUnitAst;
     int NowLevel;
 public:
-    shared_ptr<Obj> newtemp();
+    shared_ptr<Obj> newValue();
 
     void print();
 
@@ -296,9 +336,9 @@ public:
 
     shared_ptr<Obj> programConstExp(shared_ptr<ConstExpAST> &constExp);
 
-    void programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal, shared_ptr<Obj> obj[3], int *count);
+    void programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal, shared_ptr<Obj> obj[3]);
 
-    void programInitVal(shared_ptr<InitValAST> &initVal, shared_ptr<Obj> obj[3], int *count);
+    void programInitVal(shared_ptr<InitValAST> &initVal, shared_ptr<Obj> arr[3]);
 
     shared_ptr<Obj> programAddExp(shared_ptr<AddExpAST> &addExp);
 

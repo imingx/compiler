@@ -129,7 +129,7 @@ void Lexer::program() {
     /*
     char c;
     while ((c = fgetc(in)) != EOF) {
-        string str;
+        string name;
         Word word;
         while (isspace(c)) {
             if (c == '\n') ++(this->line);
@@ -140,12 +140,12 @@ void Lexer::program() {
         }
         if (isalpha(c) || c == '_') {
             do {
-                str += c;
+                name += c;
                 c = fgetc(in);
             } while (isalnum(c) || c == '_');
             ungetc(c, in);
 
-            map<string, TOKEN_CATEGORY>::iterator iterator = keyWord.find(str);
+            map<string, TOKEN_CATEGORY>::iterator iterator = keyWord.find(name);
             if (iterator == keyWord.end()) {
                 word.category = IDENFR;
             } else {
@@ -171,11 +171,11 @@ void Lexer::program() {
                     c = '/';
                 }
             }
-            str += c;
-            word.category = keyWord[str];
+            name += c;
+            word.category = keyWord[name];
         } else if (isdigit(c)) {
             do {
-                str += c;
+                name += c;
                 c = fgetc(in);
             } while (isdigit(c));
 
@@ -183,36 +183,36 @@ void Lexer::program() {
             word.category = INTCON;
         } else if (c == '\"') {
             do {
-                str += c;
+                name += c;
                 c = fgetc(in);
             } while (c != '\"');
-            str += c;
+            name += c;
             word.category = STRCON;
         } else if (c == '&' || c == '|') {
-            str += c;
+            name += c;
             c = fgetc(in);
             if (c == '&') {
-                str += c;
+                name += c;
                 word.category = AND;
             } else if (c == '|') {
-                str += c;
+                name += c;
                 word.category = OR;
             }
         } else if (c == '<' || c == '>' || c == '=' || c == '!') {
-            str += c;
+            name += c;
             c = fgetc(in);
 
             if (c == '=') {
-                str += c;
+                name += c;
             } else {
                 ungetc(c, in);
             }
-            word.category = keyWord[str];
+            word.category = keyWord[name];
         }
         word.line = line;
-        word.raw = str;
-//        cout << tokenName[word.category] << " " << str << endl;
-//        fprintf(error, "%s %s\n", tokenName[word.category], str.c_str());
+        word.raw = name;
+//        cout << tokenName[word.category] << " " << name << endl;
+//        fprintf(error, "%s %s\n", tokenName[word.category], name.c_str());
         words.push_back(word);
     }
      */

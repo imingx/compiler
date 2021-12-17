@@ -8,11 +8,11 @@ using namespace std;
 
     set(CMAKE_CXX_STANDARD 11)
 
-    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h include/AST.h include/OldSymbolTable.h include/type.h ErrorHandler.cpp include/ErrorHandler.h IRcode.cpp include/IRcode.h)
+    add_executable(Compiler main.cpp Lexer.cpp include/Lexer.h include/main.h Parser.cpp include/Parser.h include/AST.h include/OldSymbolTable.h include/type.h ErrorHandler.cpp include/ErrorHandler.h IRcode.cpp include/IRcode.h Mips.cpp include/Mips.h)
  */
 
 int main() {
-    //Lexer & Parser的输出控制在TYPE.h
+    //Lexer & Parser的输出控制在type.h
 
     // lexer
     Lexer lexer(FILE_IN, FILE_OUT);
@@ -32,9 +32,9 @@ int main() {
     // --------------------------------------------
     // Below is backend
 
-    IRcodeMaker iRcodeMaker(AST);
-    iRcodeMaker.program();
-    iRcodeMaker.print();
+    IRcodeMaker ircodeMaker(AST);
+    ircodeMaker.program();
+    ircodeMaker.print();
 
     Mips mips(MIPS);
     mips.program();
