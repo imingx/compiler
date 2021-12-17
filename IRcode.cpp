@@ -882,8 +882,8 @@ shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string
         shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
         shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
         if (obj1->branch == 5 && obj2->branch == 5) {
-            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-            shared_ptr<IRcode> t;
+//            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+//            shared_ptr<IRcode> t;
             int num;
             if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
                 num = 1;
@@ -894,15 +894,15 @@ shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string
             } else {
                 num = 0;
             }
-            if (symbol == LEQ)
-                t = make_shared<IRcode>(OpGRE, obj);
-            if (symbol == LSS)
-                t = make_shared<IRcode>(OpGEQ, obj);
-            if (symbol == GRE)
-                t = make_shared<IRcode>(OpLEQ, obj);
-            if (symbol == GEQ)
-                t = make_shared<IRcode>(OpLSS, obj);
-            IRCodeList.push_back(t);
+//            if (symbol == LEQ)
+//                t = make_shared<IRcode>(OpGRE, obj);
+//            if (symbol == LSS)
+//                t = make_shared<IRcode>(OpGEQ, obj);
+//            if (symbol == GRE)
+//                t = make_shared<IRcode>(OpLEQ, obj);
+//            if (symbol == GEQ)
+//                t = make_shared<IRcode>(OpLSS, obj);
+//            IRCodeList.push_back(t);
             return make_shared<Obj>(num);
         }
         //其中至少一个没有获取值
@@ -972,10 +972,18 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> &eqExp, string &l
         //去往下一层
         shared_ptr<Obj> ans = programRelExp(relExps[0], label, Else, false);
         if (ans->var != nullptr) {
-            //之前没有输出 比如 if (a){}
+            //之前没有输出 比如 if (!a){}
             shared_ptr<Obj> obj[3] = {ans, make_shared<Obj>(0), make_shared<Obj>(label + Else)};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpEQL, obj);
             IRCodeList.push_back(t);
+        } else if (ans->branch == 5) {
+            // if (1){}
+            if (ans->num == 0) {
+                shared_ptr<Obj> obj[3];
+                obj[0] = make_shared<Obj>(label + Else);
+                shared_ptr<IRcode> t = make_shared<IRcode>(OpJmp, obj);
+                IRCodeList.push_back(t);
+            }
         }
         return ans;
     } else {
