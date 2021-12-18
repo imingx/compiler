@@ -127,6 +127,8 @@ void IRcode::print() {
         case OpSle:
         case OpSgt:
         case OpSge:
+        case OpSeq:
+        case OpSne:
             cout << operatorString[op] << " " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
             break;
         default:
@@ -237,27 +239,7 @@ void IRcodeMaker::programConstDef(shared_ptr<ConstDefAST> &constDef) {
         now = programConstExp(constExps[i]);
         needSpace *= now->num;
         exps.push_back(now->num);
-//        if (i != 0) {
-//            shared_ptr<Obj> obj[3];
-//            obj[0] = newValue();
-//            obj[1] = before;
-//            obj[2] = now;
-//            now = obj[0];
-//
-//            shared_ptr<VarSym> var = make_shared<VarSym>(obj[0]->name, 0, INT, NowLevel);
-//            var_offset += 1;
-//            var->setOffsetAndNeedSpace(var_offset, 1);
-//
-//            obj[0]->setVar(var);
-//
-//            shared_ptr<IRcode> t = make_shared<IRcode>(OpMULT, obj);
-//            IRCodeList.push_back(t);
-//        }
     }
-
-//    for (int i = 0; i < exps.size(); ++i) {
-//        needSpace *= exps[i];
-//    }
 
     shared_ptr<VarSym> var;
     if (constExps.empty()) {
@@ -870,7 +852,6 @@ void IRcodeMaker::programFuncFParam(shared_ptr<FuncFParamAST> &funcFParam, vecto
 
 shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string &label, string &Else, bool haveEq) {
     vector<int> &symbols = relExp->symbols;//< > <= >=
-
     //实际上只有 < > <= >=
     vector<shared_ptr<AddExpAST>> &addExps = relExp->addExps;
 
@@ -878,87 +859,193 @@ shared_ptr<Obj> IRcodeMaker::programRelExp(shared_ptr<RelExpAST> &relExp, string
         shared_ptr<Obj> obj = programAddExp(addExps[0]);
         return obj;
     } else if (!haveEq) {
-        int symbol = symbols[0];
-        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
-        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
-        if (obj1->branch == 5 && obj2->branch == 5) {
-//            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-//            shared_ptr<IRcode> t;
-            int num;
-            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
-                num = 1;
-            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
-                num = 1;
-            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
-                num = 1;
+        shared_ptr<Obj> now = programAddExp(addExps[0]);
+        shared_ptr<Obj> next;
+        for (int index = 0; index < symbols.size(); ++index) {
+            int symbol = symbols[index];
+            next = programAddExp(addExps[index + 1]);
+
+            if (index == symbols.size() - 1) {
+                if (now->branch == 5 && next->branch == 5) {
+                    int num;
+                    if (now->num > next->num && (symbol == GRE || symbol == GEQ)) {
+                        num = 1;
+                    } else if (now->num == next->num && (symbol == GEQ || symbol == LEQ)) {
+                        num = 1;
+                    } else if (now->num < next->num && (symbol == LEQ || symbol == LSS)) {
+                        num = 1;
+                    } else {
+                        num = 0;
+                    }
+                    return make_shared<Obj>(num);
+                }
+                //其中至少一个没有获取值
+                shared_ptr<Obj> obj[3] = {now, next, make_shared<Obj>(label + Else)};
+                shared_ptr<IRcode> t;
+                if (symbol == GRE) {
+                    t = make_shared<IRcode>(OpLEQ, obj);
+                } else if (symbol == GEQ) {
+                    t = make_shared<IRcode>(OpLSS, obj);
+                } else if (symbol == LEQ) {
+                    t = make_shared<IRcode>(OpGRE, obj);
+                } else if (symbol == LSS) {
+                    t = make_shared<IRcode>(OpGEQ, obj);
+                }
+                IRCodeList.push_back(t);
+                return make_shared<Obj>(); //branch == 0;
             } else {
-                num = 0;
+                if (now->branch == 5 && next->branch == 5) {
+                    int num;
+                    if (now->num > next->num && (symbol == GRE || symbol == GEQ)) {
+                        num = 1;
+                    } else if (now->num == next->num && (symbol == GEQ || symbol == LEQ)) {
+                        num = 1;
+                    } else if (now->num < next->num && (symbol == LEQ || symbol == LSS)) {
+                        num = 1;
+                    } else {
+                        num = 0;
+                    }
+                    now = make_shared<Obj>(num);
+                    continue;
+                }
+                shared_ptr<Obj> obj[3] = {newValue(), now, next};
+                shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
+
+                var_offset += 1;
+                var->setOffsetAndNeedSpace(var_offset, 1);
+
+                obj[0]->setVar(var);
+
+                shared_ptr<IRcode> t;
+                if (symbol == GRE) {
+                    t = make_shared<IRcode>(OpSgt, obj);
+                } else if (symbol == GEQ) {
+                    t = make_shared<IRcode>(OpSge, obj);
+                } else if (symbol == LEQ) {
+                    t = make_shared<IRcode>(OpSle, obj);
+                } else if (symbol == LSS) {
+                    t = make_shared<IRcode>(OpSlt, obj);
+                }
+                IRCodeList.push_back(t);
+                now = obj[0];
             }
-//            if (symbol == LEQ)
-//                t = make_shared<IRcode>(OpGRE, obj);
-//            if (symbol == LSS)
-//                t = make_shared<IRcode>(OpGEQ, obj);
-//            if (symbol == GRE)
-//                t = make_shared<IRcode>(OpLEQ, obj);
-//            if (symbol == GEQ)
-//                t = make_shared<IRcode>(OpLSS, obj);
-//            IRCodeList.push_back(t);
-            return make_shared<Obj>(num);
         }
-        //其中至少一个没有获取值
-        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-        shared_ptr<IRcode> t;
-        if (symbol == GRE) {
-            t = make_shared<IRcode>(OpLEQ, obj);
-        } else if (symbol == GEQ) {
-            t = make_shared<IRcode>(OpLSS, obj);
-        } else if (symbol == LEQ) {
-            t = make_shared<IRcode>(OpGRE, obj);
-        } else if (symbol == LSS) {
-            t = make_shared<IRcode>(OpGEQ, obj);
-        }
-        IRCodeList.push_back(t);
-        return make_shared<Obj>(); //branch == 0;
+
+//        int symbol = symbols[0];
+//        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
+//        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
+//        if (obj1->branch == 5 && obj2->branch == 5) {
+//            int num;
+//            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
+//                num = 1;
+//            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
+//                num = 1;
+//            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
+//                num = 1;
+//            } else {
+//                num = 0;
+//            }
+//            return make_shared<Obj>(num);
+//        }
+//        //其中至少一个没有获取值
+//        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+//        shared_ptr<IRcode> t;
+//        if (symbol == GRE) {
+//            t = make_shared<IRcode>(OpLEQ, obj);
+//        } else if (symbol == GEQ) {
+//            t = make_shared<IRcode>(OpLSS, obj);
+//        } else if (symbol == LEQ) {
+//            t = make_shared<IRcode>(OpGRE, obj);
+//        } else if (symbol == LSS) {
+//            t = make_shared<IRcode>(OpGEQ, obj);
+//        }
+//        IRCodeList.push_back(t);
+//        return make_shared<Obj>(); //branch == 0;
     } else {
         // if (a > b == a < c){}
-        int symbol = symbols[0];
-        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
-        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
-        if (obj1->branch == 5 && obj2->branch == 5) {
-            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-            int num;
-            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
-                num = 1;
-            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
-                num = 1;
-            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
-                num = 1;
-            } else {
-                num = 0;
+
+        shared_ptr<Obj> now = programAddExp(addExps[0]);
+        shared_ptr<Obj> next;
+        for (int index = 0; index < symbols.size(); ++index) {
+            int symbol = symbols[index];
+            next = programAddExp(addExps[index + 1]);
+            if (now->branch == 5 && next->branch == 5) {
+                int num;
+                if (now->num > next->num && (symbol == GRE || symbol == GEQ)) {
+                    num = 1;
+                } else if (now->num == next->num && (symbol == GEQ || symbol == LEQ)) {
+                    num = 1;
+                } else if (now->num < next->num && (symbol == LEQ || symbol == LSS)) {
+                    num = 1;
+                } else {
+                    num = 0;
+                }
+                now = make_shared<Obj>(num);
             }
-            return make_shared<Obj>(num);
+            shared_ptr<Obj> obj[3] = {newValue(), now, next};
+
+            shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
+
+            var_offset += 1;
+            var->setOffsetAndNeedSpace(var_offset, 1);
+
+            obj[0]->setVar(var);
+
+            shared_ptr<IRcode> t;
+            if (symbol == GRE) {
+                t = make_shared<IRcode>(OpSgt, obj);
+            } else if (symbol == GEQ) {
+                t = make_shared<IRcode>(OpSge, obj);
+            } else if (symbol == LEQ) {
+                t = make_shared<IRcode>(OpSle, obj);
+            } else if (symbol == LSS) {
+                t = make_shared<IRcode>(OpSlt, obj);
+            }
+            IRCodeList.push_back(t);
+            now = obj[0];
+
+            if (index == symbols.size() - 1) {
+                return now;
+            }
         }
-        shared_ptr<Obj> obj[3] = {newValue(), obj1, obj2};
 
-        shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
-
-        var_offset += 1;
-        var->setOffsetAndNeedSpace(var_offset, 1);
-
-        obj[0]->setVar(var);
-
-        shared_ptr<IRcode> t;
-        if (symbol == GRE) {
-            t = make_shared<IRcode>(OpSgt, obj);
-        } else if (symbol == GEQ) {
-            t = make_shared<IRcode>(OpSge, obj);
-        } else if (symbol == LEQ) {
-            t = make_shared<IRcode>(OpSle, obj);
-        } else if (symbol == LSS) {
-            t = make_shared<IRcode>(OpSlt, obj);
-        }
-        IRCodeList.push_back(t);
-        return obj[0];
+//        int symbol = symbols[0];
+//        shared_ptr<Obj> obj1 = programAddExp(addExps[0]);
+//        shared_ptr<Obj> obj2 = programAddExp(addExps[1]);
+//        if (obj1->branch == 5 && obj2->branch == 5) {
+//            int num;
+//            if (obj1->num > obj2->num && (symbol == GRE || symbol == GEQ)) {
+//                num = 1;
+//            } else if (obj1->num == obj2->num && (symbol == GEQ || symbol == LEQ)) {
+//                num = 1;
+//            } else if (obj1->num < obj2->num && (symbol == LEQ || symbol == LSS)) {
+//                num = 1;
+//            } else {
+//                num = 0;
+//            }
+//            return make_shared<Obj>(num);
+//        }
+//        shared_ptr<Obj> obj[3] = {newValue(), obj1, obj2};
+//
+//        shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
+//
+//        var_offset += 1;
+//        var->setOffsetAndNeedSpace(var_offset, 1);
+//
+//        obj[0]->setVar(var);
+//
+//        shared_ptr<IRcode> t;
+//        if (symbol == GRE) {
+//            t = make_shared<IRcode>(OpSgt, obj);
+//        } else if (symbol == GEQ) {
+//            t = make_shared<IRcode>(OpSge, obj);
+//        } else if (symbol == LEQ) {
+//            t = make_shared<IRcode>(OpSle, obj);
+//        } else if (symbol == LSS) {
+//            t = make_shared<IRcode>(OpSlt, obj);
+//        }
+//        IRCodeList.push_back(t);
+//        return obj[0];
     }
 }
 
@@ -989,40 +1076,108 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> &eqExp, string &l
     } else {
         //显然是 a == b或 a != b
         //可以有 a > 1 == a < 20
+        //可以有 a == b == c
 
-        int symbol = symbols[0];
-        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else, true);
-        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else, true);
-        if (obj1->branch == 5 && obj2->branch == 5) {
-            //两者都是已经获取值
-            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-            shared_ptr<IRcode> t;
-            int num;
-            if (obj1->num == obj2->num && symbol == EQL) {
-                num = 1;
-            } else if (obj1->num != obj2->num && symbol == NEQ) {
-                num = 1;
+        shared_ptr<Obj> now = programRelExp(relExps[0], label, Else, true);
+        shared_ptr<Obj> next;
+        for (int index = 0; index < symbols.size(); ++index) {
+            int symbol = symbols[index];
+            next = programRelExp(relExps[index + 1], label, Else, true);
+
+            if (index == symbols.size() - 1) {
+                if (now->branch == 5 && next->branch == 5) {
+                    shared_ptr<Obj> obj[3] = {now, next, make_shared<Obj>(label + Else)};
+                    shared_ptr<IRcode> t;
+                    int num;
+                    if (now->num == next->num && symbol == EQL) {
+                        num = 1;
+                    } else if (now->num != next->num && symbol == NEQ) {
+                        num = 1;
+                    } else {
+                        num = 0;
+                    }
+                    if (symbol == NEQ)
+                        t = make_shared<IRcode>(OpEQL, obj);
+                    if (symbol == EQL)
+                        t = make_shared<IRcode>(OpNEQ, obj);
+                    IRCodeList.push_back(t);
+                    return make_shared<Obj>(num);
+                }
+                //其中至少一个没有获取值
+                shared_ptr<Obj> obj[3] = {now, next, make_shared<Obj>(label + Else)};
+                shared_ptr<IRcode> t;
+                if (symbol == EQL) {
+                    t = make_shared<IRcode>(OpNEQ, obj);
+                } else if (symbol == NEQ) {
+                    t = make_shared<IRcode>(OpEQL, obj);
+                }
+                IRCodeList.push_back(t);
+                return make_shared<Obj>(); //branch == 0;
             } else {
-                num = 0;
+                if (now->branch == 5 && next->branch == 5) {
+                    int num;
+                    if (now->num == next->num && symbol == EQL) {
+                        num = 1;
+                    } else if (now->num != next->num && symbol == NEQ) {
+                        num = 1;
+                    } else {
+                        num = 0;
+                    }
+                    now = make_shared<Obj>(num);
+                    continue;
+                }
+                shared_ptr<Obj> obj[3] = {newValue(), now, next};
+                shared_ptr<VarSym> var = make_shared<VarSym>(false, obj[0]->name, 0, INT, NowLevel);
+
+                var_offset += 1;
+                var->setOffsetAndNeedSpace(var_offset, 1);
+
+                obj[0]->setVar(var);
+
+                shared_ptr<IRcode> t;
+                if (symbol == EQL) {
+                    t = make_shared<IRcode>(OpSeq, obj);
+                } else if (symbol == NEQ) {
+                    t = make_shared<IRcode>(OpSne, obj);
+                }
+                IRCodeList.push_back(t);
+                now = obj[0];
             }
-            if (symbol == NEQ)
-                t = make_shared<IRcode>(OpEQL, obj);
-            if (symbol == EQL)
-                t = make_shared<IRcode>(OpNEQ, obj);
-            IRCodeList.push_back(t);
-            return make_shared<Obj>(num);
         }
-        //两者至少一个没有立刻得到值。
-        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-        shared_ptr<IRcode> t;
-        if (symbol == EQL) {
-            t = make_shared<IRcode>(OpNEQ, obj);
-        } else if (symbol == NEQ) {
-            t = make_shared<IRcode>(OpEQL, obj);
-        }
-        IRCodeList.push_back(t);
-        return make_shared<Obj>(); //branch = 0
     }
+//        int symbol = symbols[0];
+//        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else, true);
+//        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else, true);
+//        if (obj1->branch == 5 && obj2->branch == 5) {
+//            //两者都是已经获取值
+//            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+//            shared_ptr<IRcode> t;
+//            int num;
+//            if (obj1->num == obj2->num && symbol == EQL) {
+//                num = 1;
+//            } else if (obj1->num != obj2->num && symbol == NEQ) {
+//                num = 1;
+//            } else {
+//                num = 0;
+//            }
+//            if (symbol == NEQ)
+//                t = make_shared<IRcode>(OpEQL, obj);
+//            if (symbol == EQL)
+//                t = make_shared<IRcode>(OpNEQ, obj);
+//            IRCodeList.push_back(t);
+//            return make_shared<Obj>(num);
+//        }
+//        //两者至少一个没有立刻得到值。
+//        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
+//        shared_ptr<IRcode> t;
+//        if (symbol == EQL) {
+//            t = make_shared<IRcode>(OpNEQ, obj);
+//        } else if (symbol == NEQ) {
+//            t = make_shared<IRcode>(OpEQL, obj);
+//        }
+//        IRCodeList.push_back(t);
+//        return make_shared<Obj>(); //branch = 0
+
 }
 
 void IRcodeMaker::programLAndExp(shared_ptr<LAndExpAST> &lAndExp, string &label, string &Else) {

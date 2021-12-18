@@ -345,7 +345,8 @@ void Mips::program() {
             saveValue(ircode->obj[0], "$t0");
         } else if (ircode->op == OpArray) {
             //Array int a[10];无需输出
-        } else if (ircode->op == OpSge || ircode->op == OpSgt || ircode->op == OpSle || ircode->op == OpSlt) {
+        } else if (ircode->op == OpSge || ircode->op == OpSgt || ircode->op == OpSle || ircode->op == OpSlt
+        || ircode->op == OpSne || ircode->op == OpSeq) {
             loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
             fprintf(out, "%s $t0, $t0, $t1\n", operatorString[ircode->op]);

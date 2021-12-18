@@ -198,30 +198,6 @@ public:
         this->num_index = num_index;
     }
 
-    /*
-    Obj(string name, shared_ptr<Obj> &obj) {
-        if (obj->branch == 2) {
-            this->branch = 3;
-            this->index = obj->name;
-        } else if (obj->branch == 5) {
-            this->branch = 4;
-            this->num = obj->num;
-        }
-        this->name = name;
-//        if (obj->type == ARR) {
-//            this->type = ARR;
-//        }
-    }
-
-    Obj(string name, int num, shared_ptr<VarSym> &var) {
-        //para int a[1]
-        this->var = var;
-        this->branch = 4;
-        this->num = num;
-        this->name = name;
-//        this->type = ARR;
-    }
- */
     Obj(string name, shared_ptr<Obj> &obj, shared_ptr<VarSym> &var) {
         this->var = var;
         if (obj->branch == 2 || obj->branch == 3 || obj->branch == 4) {
