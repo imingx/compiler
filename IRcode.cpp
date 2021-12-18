@@ -714,11 +714,11 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
     }
 
     var_offset += needSpace;
-    if (NowLevel == 0 || dimension != 0) {
-        global_offset += needSpace;
-        var->setOffsetAndNeedSpace(global_offset, needSpace);
-        var->level = 0;
-    } else
+//    if (NowLevel == 0 || dimension != 0) {
+//        global_offset += needSpace;
+//        var->setOffsetAndNeedSpace(global_offset, needSpace);
+//        var->level = 0;
+//    } else
         var->setOffsetAndNeedSpace(var_offset, needSpace);
 
 //    cout << "needspace is " << needSpace << endl;
@@ -1494,8 +1494,8 @@ void IRcodeMaker::programFunc(shared_ptr<FuncDefAST> &funcDef) {
     shared_ptr<FuncSym> func;
 
 
-    cout << "var_offset is " << var_offset << endl;
-    cout << "func is " << funcName << endl;
+//    cout << "var_offset is " << var_offset << endl;
+//    cout << "func is " << funcName << endl;
     //param:
 
     if (!symTable.Func.empty()) {
@@ -1584,6 +1584,10 @@ void IRcodeMaker::program() {
 //        cout << symTable.Func[len - 1]->name << " 的 offset是 " << var_offset << endl;
     }
     isMain = false;
+
+//    for(int i = 0; i < symTable.Func.size(); ++ i) {
+//        cout << symTable.Func[i]->name << " 的 offset是 " << var_offset << endl;
+//    }
     return;
 }
 
