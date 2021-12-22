@@ -34,7 +34,11 @@ int main() {
 
     IRcodeMaker ircodeMaker(AST);
     ircodeMaker.program();
-    ircodeMaker.print();
+//    ircodeMaker.print();
+
+    Opt opt;
+    opt.program();
+    opt.print();
 
     Mips mips(MIPS);
     mips.program();

@@ -12,6 +12,7 @@
 # include "ErrorHandler.h"
 # include "IRcode.h"
 # include "Mips.h"
+# include "Opt.h"
 
 // FILE IO define
 static const char *FILE_IN = "testfile.txt";

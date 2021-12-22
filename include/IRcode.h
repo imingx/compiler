@@ -81,6 +81,8 @@ public:
     int count; //引用次数
     bool whetherDefiniteValue;
 
+    bool needUse;
+
     void setValue(int value) {
         this->value = make_shared<Obj>(value);
     }
@@ -108,6 +110,7 @@ public:
         }
         isArrParam = false;
         values.reserve(len);
+        needUse = false;
     }
 
     VarSym(bool isConst, string name, int dim, SymbolType type, int level, shared_ptr<Obj> &value) {
@@ -118,6 +121,7 @@ public:
         this->originLevel = this->level = level;
         this->value = value;
         isArrParam = false;
+        needUse = false;
     }
 
     VarSym(bool isConst, string name, int dim, SymbolType type, int level) {
@@ -128,6 +132,7 @@ public:
         this->originLevel = this->level = level;
         this->value = make_shared<Obj>(0);
         isArrParam = false;
+        needUse = false;
     }
 };
 

@@ -285,31 +285,49 @@ void Mips::program() {
             fprintf(out, "li $v0, 10\n");
             SYSCALL
         } else if (ircode->op == OpPLUS) {
-            loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
-            loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
-
-            fprintf(out, "addu $t2, $t0, $t1\n");
-            saveValue(ircode->obj[0], "$t2");
+            if (ircode->obj[1]->branch == 5) {
+                loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
+                fprintf(out, "addi $t2, $t1, %d\n", ircode->obj[1]->num);
+                saveValue(ircode->obj[0], "$t2");
+            } else if (ircode->obj[2]->branch == 5) {
+                loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+                fprintf(out, "addi $t2, $t0, %d\n", ircode->obj[2]->num);
+                saveValue(ircode->obj[0], "$t2");
+            } else {
+                loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+                loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
+                fprintf(out, "addu $t2, $t0, $t1\n");
+                saveValue(ircode->obj[0], "$t2");
+            }
         } else if (ircode->op == OpMINU) {
-            loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
-            loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
+            if (ircode->obj[2]->branch == 5) {
+                loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+                fprintf(out, "subi $t2, $t0, %d\n", ircode->obj[2]->num);
+                saveValue(ircode->obj[0], "$t2");
+            } else {
+                loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+                loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
 
-            fprintf(out, "subu $t2, $t0, $t1\n");
-            saveValue(ircode->obj[0], "$t2");
+                fprintf(out, "subu $t2, $t0, $t1\n");
+                saveValue(ircode->obj[0], "$t2");
+            }
         } else if (ircode->op == OpDIV) {
+
             loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
 
             fprintf(out, "div $t0, $t1\n");
             fprintf(out, "mflo $t2\n");
             saveValue(ircode->obj[0], "$t2");
+
         } else if (ircode->op == OpMULT) {
+
             loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
-
             fprintf(out, "mult $t0, $t1\n");
             fprintf(out, "mflo $t2\n");
             saveValue(ircode->obj[0], "$t2");
+
         } else if (ircode->op == OpMOD) {
             loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
@@ -360,7 +378,12 @@ void Mips::program() {
         } else if (ircode->op == OpArray) {
             //Array int a[10];无需输出
         } else if (ircode->op == OpSge || ircode->op == OpSgt || ircode->op == OpSle || ircode->op == OpSlt
-        || ircode->op == OpSne || ircode->op == OpSeq) {
+                   || ircode->op == OpSne || ircode->op == OpSeq || ircode->op == OpSrlv || ircode->op == OpSllv) {
+            loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
+            loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
+            fprintf(out, "%s $t0, $t0, $t1\n", operatorString[ircode->op]);
+            saveValue(ircode->obj[0], "$t0");
+        } else if (ircode->op == OpAnd || ircode->op == OpOr || ircode->op == OpSrl || ircode->op == OpSll) {
             loadValue(ircode->obj[1], "$t0", value1, isNum1, true);
             loadValue(ircode->obj[2], "$t1", value2, isNum2, true);
             fprintf(out, "%s $t0, $t0, $t1\n", operatorString[ircode->op]);

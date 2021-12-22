@@ -112,7 +112,13 @@ enum OperatorType {
     OpSlt,
     OpSle,
     OpSgt,
-    OpSge
+    OpSge,
+    OpSll,
+    OpSrl,
+    OpAnd,
+    OpOr,
+    OpSrlv,
+    OpSllv,
 };
 
 
@@ -150,7 +156,13 @@ static const char *const operatorString[] = {
         "slt",
         "sle",
         "sgt",
-        "sge"
+        "sge",
+        "sll",
+        "srl",
+        "and",
+        "or",
+        "srlv",
+        "sllv",
 };
 
 enum SymbolType {

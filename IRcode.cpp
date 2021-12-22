@@ -19,6 +19,10 @@ vector<StringData> stringData;
 
 bool isMain;
 
+bool isPowerOf2(int num) {
+    return (num & num - 1) == 0;
+}
+
 IRcodeMaker::IRcodeMaker(shared_ptr<CompUnitAST> &compUnitAst) : compUnitAst(compUnitAst) {
     var_offset = 0;
     NowLevel = 0;
@@ -129,6 +133,12 @@ void IRcode::print() {
         case OpSge:
         case OpSeq:
         case OpSne:
+        case OpAnd:
+        case OpOr:
+        case OpSll:
+        case OpSrl:
+        case OpSrlv:
+        case OpSllv:
             cout << operatorString[op] << " " << obj[0]->p() << " " << obj[1]->p() << " " << obj[2]->p() << endl;
             break;
         default:
@@ -175,9 +185,7 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
             obj[1] = programConstExp(constInitVal->constInitVals[i]->constExp);
             obj[0]->var->values.push_back(obj[1]);
             shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-#ifndef OPTIMIZE
             IRCodeList.push_back(t);
-#endif
         }
         if (NowLevel == 0) {
             for (; i < arr[1]->num_index; ++i) {
@@ -186,9 +194,7 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = make_shared<Obj>(0);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
-#endif
             }
         }
     } else if (dim == 2) {
@@ -203,9 +209,7 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = programConstExp(constInitVal->constInitVals[i]->constInitVals[j]->constExp);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
-#endif
             }
             if (NowLevel == 0) {
                 for (; j < second; ++j) {
@@ -214,9 +218,7 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                     obj[1] = make_shared<Obj>(0);
                     obj[0]->var->values.push_back(obj[1]);
                     shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-#ifndef OPTIMIZE
                     IRCodeList.push_back(t);
-#endif
                 }
             }
         }
@@ -227,9 +229,7 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = make_shared<Obj>(0);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
-#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
-#endif
             }
         }
     }
@@ -309,7 +309,6 @@ shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal, bool isAssig
             break;
         }
     }
-
     vector<shared_ptr<Obj>> objExp;
 
     for (int i = 0; i < exps.size(); ++i) {
@@ -564,12 +563,53 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
             }
 
             shared_ptr<IRcode> t;
-            if (symbol[i - 1] == MULT)
+            if (symbol[i - 1] == MULT) {
+#ifdef OPTIMIZE
+                if (obj[1]->branch != 5 && obj[2]->branch == 5) {
+                    if (isPowerOf2(obj[2]->num)) {
+                        int num = log2(obj[2]->num);
+                        obj[2] = make_shared<Obj>(num);
+                        t = make_shared<IRcode>(OpSllv, obj);
+                    } else {
+                        t = make_shared<IRcode>(OpMULT, obj);
+                    }
+                } else
+                    t = make_shared<IRcode>(OpMULT, obj);
+#elif
                 t = make_shared<IRcode>(OpMULT, obj);
+#endif
+            }
             else if (symbol[i - 1] == DIV) {
+#ifdef OPTIMIZE
+                if (obj[1]->branch != 5 && obj[2]->branch == 5) {
+                    if (isPowerOf2(obj[2]->num)) {
+                        int num = log2(obj[2]->num);
+                        obj[2] = make_shared<Obj>(num);
+                        t = make_shared<IRcode>(OpSrlv, obj);
+                    } else {
+                        t = make_shared<IRcode>(OpDIV, obj);
+                    }
+                } else
+                    t = make_shared<IRcode>(OpDIV, obj);
+#elif
                 t = make_shared<IRcode>(OpDIV, obj);
-            } else if (symbol[i - 1] == MOD)
+#endif
+            } else if (symbol[i - 1] == MOD) {
+#ifdef OPTIMIZE
+                if (obj[1]->branch != 5 && obj[2]->branch == 5) {
+                    if (isPowerOf2(obj[2]->num)) {
+                        int num = obj[2]->num - 1;
+                        obj[2] = make_shared<Obj>(num);
+                        t = make_shared<IRcode>(OpAnd, obj);
+                    } else {
+                        t = make_shared<IRcode>(OpMOD, obj);
+                    }
+                } else
+                    t = make_shared<IRcode>(OpMOD, obj);
+#elif
                 t = make_shared<IRcode>(OpMOD, obj);
+#endif
+            }
 #ifdef OPTIMIZE
             if (!isConst) {
                 IRCodeList.push_back(t);
