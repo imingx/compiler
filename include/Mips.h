@@ -6,6 +6,7 @@
 #define COMPILER_MIPS_H
 
 #include "IRcode.h"
+#include "type.h"
 
 using namespace std;
 

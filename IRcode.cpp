@@ -163,7 +163,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
         arr[2] = programConstExp(constInitVal->constExp);
         arr[1]->var->setValue(arr[2]);
         shared_ptr<IRcode> t = make_shared<IRcode>(OpVar, arr);
+#ifndef OPTIMIZE
         IRCodeList.push_back(t);
+#endif
     } else if (dim == 1) {
         //const var int a[10] = {1,b,3};
         int i;
@@ -173,7 +175,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
             obj[1] = programConstExp(constInitVal->constInitVals[i]->constExp);
             obj[0]->var->values.push_back(obj[1]);
             shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+#ifndef OPTIMIZE
             IRCodeList.push_back(t);
+#endif
         }
         if (NowLevel == 0) {
             for (; i < arr[1]->num_index; ++i) {
@@ -182,7 +186,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = make_shared<Obj>(0);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
+#endif
             }
         }
     } else if (dim == 2) {
@@ -197,7 +203,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = programConstExp(constInitVal->constInitVals[i]->constInitVals[j]->constExp);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
+#endif
             }
             if (NowLevel == 0) {
                 for (; j < second; ++j) {
@@ -206,7 +214,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                     obj[1] = make_shared<Obj>(0);
                     obj[0]->var->values.push_back(obj[1]);
                     shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+#ifndef OPTIMIZE
                     IRCodeList.push_back(t);
+#endif
                 }
             }
         }
@@ -217,7 +227,9 @@ void IRcodeMaker::programConstInitVal(shared_ptr<ConstInitValAST> &constInitVal,
                 obj[1] = make_shared<Obj>(0);
                 obj[0]->var->values.push_back(obj[1]);
                 shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
+#ifndef OPTIMIZE
                 IRCodeList.push_back(t);
+#endif
             }
         }
     }
@@ -268,7 +280,9 @@ void IRcodeMaker::programConstDef(shared_ptr<ConstDefAST> &constDef) {
         shared_ptr<Obj> obj[3] = {make_shared<Obj>(defineType.top()),
                                   make_shared<Obj>(identName, needSpace, var)};
         shared_ptr<IRcode> t = make_shared<IRcode>(OpArray, obj);
+#ifndef OPTIMIZE
         IRCodeList.push_back(t);
+#endif
         programConstInitVal(constDef->constInitVal, obj);
     }
 }
@@ -283,7 +297,7 @@ void IRcodeMaker::programConstDecl(shared_ptr<ConstDeclAST> &constDecl) {
     defineType.pop();
 }
 
-shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal) {
+shared_ptr<Obj> IRcodeMaker::programLVal(shared_ptr<LValAST> &lVal, bool isAssign) {
     string varName = lVal->name;
     vector<shared_ptr<ExpAST>> &exps = lVal->exps;
 
@@ -382,7 +396,7 @@ shared_ptr<Obj> IRcodeMaker::programPrimaryExp(shared_ptr<PrimaryExpAST> &primar
         }
         case 2: {//lval
             shared_ptr<LValAST> lVal = dynamic_pointer_cast<LValAST>(primaryExp->item);
-            return programLVal(lVal);
+            return programLVal(lVal, false);
         }
         case 3: {//number
             shared_ptr<NumberAST> number = dynamic_pointer_cast<NumberAST>(primaryExp->item);
@@ -485,7 +499,14 @@ shared_ptr<Obj> IRcodeMaker::programUnaryExp(shared_ptr<UnaryExpAST> &unaryExp) 
             if (ans->branch == 5) {
                 obj[0]->branch = 5;
             }
+#ifdef OPTIMIZE
+            if (obj[0]->branch != 5) {
+                IRCodeList.push_back(t);
+            }
+#endif
+#ifndef OPTIMIZE
             IRCodeList.push_back(t);
+#endif
             return obj[0];
         }
     }
@@ -545,11 +566,18 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
             shared_ptr<IRcode> t;
             if (symbol[i - 1] == MULT)
                 t = make_shared<IRcode>(OpMULT, obj);
-            else if (symbol[i - 1] == DIV)
+            else if (symbol[i - 1] == DIV) {
                 t = make_shared<IRcode>(OpDIV, obj);
-            else if (symbol[i - 1] == MOD)
+            } else if (symbol[i - 1] == MOD)
                 t = make_shared<IRcode>(OpMOD, obj);
+#ifdef OPTIMIZE
+            if (!isConst) {
+                IRCodeList.push_back(t);
+            }
+#endif
+#ifndef OPTIMIZE
             IRCodeList.push_back(t);
+#endif
         }
     }
     now->num = num;
@@ -604,7 +632,14 @@ shared_ptr<Obj> IRcodeMaker::programAddExp(shared_ptr<AddExpAST> &addExp) {
                 t = make_shared<IRcode>(OpPLUS, obj);
             else if (symbol[i - 1] == MINU)
                 t = make_shared<IRcode>(OpMINU, obj);
+#ifdef OPTIMIZE
+            if (!isConst) {
+                IRCodeList.push_back(t);
+            }
+#endif
+#ifndef OPTIMIZE
             IRCodeList.push_back(t);
+#endif
         }
     }
     now->num = num;
@@ -719,7 +754,7 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
 //        var->setOffsetAndNeedSpace(global_offset, needSpace);
 //        var->level = 0;
 //    } else
-        var->setOffsetAndNeedSpace(var_offset, needSpace);
+    var->setOffsetAndNeedSpace(var_offset, needSpace);
 
 //    cout << "needspace is " << needSpace << endl;
 //    cout << "offset is " << var_offset << endl;
@@ -744,6 +779,7 @@ void IRcodeMaker::programVarDef(shared_ptr<VarDefAST> &varDef) {
             programInitVal(varDef->initVal, obj);
         }
     } else {
+        var->whetherDefiniteValue = true;
         //没有初始值，只需要定义即可
         //var int i;
         //var int j[1][2];
@@ -1145,38 +1181,7 @@ shared_ptr<Obj> IRcodeMaker::programEqExp(shared_ptr<EqExpAST> &eqExp, string &l
             }
         }
     }
-//        int symbol = symbols[0];
-//        shared_ptr<Obj> obj1 = programRelExp(relExps[0], label, Else, true);
-//        shared_ptr<Obj> obj2 = programRelExp(relExps[1], label, Else, true);
-//        if (obj1->branch == 5 && obj2->branch == 5) {
-//            //两者都是已经获取值
-//            shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-//            shared_ptr<IRcode> t;
-//            int num;
-//            if (obj1->num == obj2->num && symbol == EQL) {
-//                num = 1;
-//            } else if (obj1->num != obj2->num && symbol == NEQ) {
-//                num = 1;
-//            } else {
-//                num = 0;
-//            }
-//            if (symbol == NEQ)
-//                t = make_shared<IRcode>(OpEQL, obj);
-//            if (symbol == EQL)
-//                t = make_shared<IRcode>(OpNEQ, obj);
-//            IRCodeList.push_back(t);
-//            return make_shared<Obj>(num);
-//        }
-//        //两者至少一个没有立刻得到值。
-//        shared_ptr<Obj> obj[3] = {obj1, obj2, make_shared<Obj>(label + Else)};
-//        shared_ptr<IRcode> t;
-//        if (symbol == EQL) {
-//            t = make_shared<IRcode>(OpNEQ, obj);
-//        } else if (symbol == NEQ) {
-//            t = make_shared<IRcode>(OpEQL, obj);
-//        }
-//        IRCodeList.push_back(t);
-//        return make_shared<Obj>(); //branch = 0
+
 
 }
 
@@ -1225,8 +1230,10 @@ void IRcodeMaker::programCond(shared_ptr<CondAST> &cond, string &label, string &
 void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
     switch (stmt->type) {
         case 1: {//1 lval = exp,--------
-            shared_ptr<Obj> lval = programLVal(stmt->lVal);
+            shared_ptr<Obj> lval = programLVal(stmt->lVal, true);
             shared_ptr<Obj> exp = programExp(stmt->exp);
+            lval->var->setValue(exp);
+
             shared_ptr<Obj> obj[3] = {lval, exp};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
             IRCodeList.push_back(t);
@@ -1352,7 +1359,10 @@ void IRcodeMaker::programStmt(shared_ptr<StmtAST> &stmt) {
             shared_ptr<IRcode> scan_t = make_shared<IRcode>(OpScanf, scan_obj);
             IRCodeList.push_back(scan_t);
 
-            shared_ptr<Obj> lval = programLVal(stmt->lValGetint);
+            shared_ptr<Obj> lval = programLVal(stmt->lValGetint, true);
+
+            lval->var->whetherDefiniteValue = false;
+
             shared_ptr<Obj> obj[3] = {lval, scan_obj[0]};
             shared_ptr<IRcode> t = make_shared<IRcode>(OpAssign, obj);
             IRCodeList.push_back(t);

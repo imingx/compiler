@@ -7,6 +7,7 @@
 
 #include<bits/stdc++.h>
 #include "AST.h"
+#include "type.h"
 
 using namespace std;
 
@@ -73,9 +74,12 @@ public:
     vector<shared_ptr<Obj>> values; // int a[10] = {1,2,3,4};
     int offset;
     int needSpace;
-    bool isConst;
+    bool isConst;  //是否是const，但是无用，因为其index不一定是const
 
-    bool isArrParam;
+    bool isArrParam; //是否是数组参数
+
+    int count; //引用次数
+    bool whetherDefiniteValue;
 
     void setValue(int value) {
         this->value = make_shared<Obj>(value);
@@ -296,7 +300,7 @@ public:
 
     void programBLock(shared_ptr<BlockAST> &block, bool isfunc);
 
-    shared_ptr<Obj> programLVal(shared_ptr<LValAST> &lVal);
+    shared_ptr<Obj> programLVal(shared_ptr<LValAST> &lVal, bool isAssign);
 
     void programPrintf(const string &formatString, vector<shared_ptr<ExpAST>> exps);
 

@@ -17,6 +17,10 @@ using namespace std;
 //#define ParserPrint   //控制02语法分析输出
 #endif
 
+#ifndef OPTIMIZE
+#define OPTIMIZE
+#endif
+
 typedef pair<int, string> PIS;
 
 //template<typename T, typename... Ts>
@@ -153,18 +157,14 @@ enum SymbolType {
     INT,
     VOID,
     IF,
-    WHILE,
-    BEGIN,
-    END,
+    WHILE
 };
 
 static const char *const symbolTypeString[] = {
         "int",
         "void",
         "if_",
-        "while_",
-        "_begin",
-        "_end",
+        "while_"
 };
 
 #endif //COMPILER_TYPE_H
