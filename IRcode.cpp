@@ -575,23 +575,23 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
                     }
                 } else
                     t = make_shared<IRcode>(OpMULT, obj);
-#elif
+#else
                 t = make_shared<IRcode>(OpMULT, obj);
 #endif
             }
             else if (symbol[i - 1] == DIV) {
 #ifdef OPTIMIZE
-                if (obj[1]->branch != 5 && obj[2]->branch == 5) {
-                    if (isPowerOf2(obj[2]->num)) {
-                        int num = log2(obj[2]->num);
-                        obj[2] = make_shared<Obj>(num);
-                        t = make_shared<IRcode>(OpSrlv, obj);
-                    } else {
-                        t = make_shared<IRcode>(OpDIV, obj);
-                    }
-                } else
+//                if (obj[1]->branch != 5 && obj[2]->branch == 5) {
+//                    if (isPowerOf2(obj[2]->num)) {
+//                        int num = log2(obj[2]->num);
+//                        obj[2] = make_shared<Obj>(num);
+//                        t = make_shared<IRcode>(OpSrlv, obj);
+//                    } else {
+//                        t = make_shared<IRcode>(OpDIV, obj);
+//                    }
+//                } else
                     t = make_shared<IRcode>(OpDIV, obj);
-#elif
+#else
                 t = make_shared<IRcode>(OpDIV, obj);
 #endif
             } else if (symbol[i - 1] == MOD) {
@@ -606,7 +606,7 @@ shared_ptr<Obj> IRcodeMaker::programMulExp(shared_ptr<MulExpAST> &mulExp) {
                     }
                 } else
                     t = make_shared<IRcode>(OpMOD, obj);
-#elif
+#else
                 t = make_shared<IRcode>(OpMOD, obj);
 #endif
             }
